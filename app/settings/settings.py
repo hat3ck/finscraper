@@ -11,10 +11,11 @@ class Settings(BaseSettings):
     echo_sql: bool = True
     project_name: str
     log_level: str = "DEBUG"
+    debug_logs: bool = True
 
     @property
     def database_url(self) -> str:
-        return f"postgresql://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}"
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}"
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(__file__), f".env.{env}"),
