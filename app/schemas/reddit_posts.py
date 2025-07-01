@@ -1,8 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
-class RedditPost(BaseModel):
+class RedditPostBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
     title: str
     subreddit: str
     author: str
@@ -11,3 +10,7 @@ class RedditPost(BaseModel):
     created_utc: int
     selftext: str | None = None
     url: str
+class RedditPostCreate(RedditPostBase):
+    pass  # everything from base, no id
+class RedditPost(RedditPostBase):
+    id: int  # for GET responses

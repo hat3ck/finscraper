@@ -3,6 +3,7 @@ import os
 
 class Settings(BaseSettings):
     env: str = os.getenv("ENV", "dev")
+    app_port: int = int(os.getenv("APP_PORT", 8000))
     db_user: str = os.getenv("DB_USER", "dev-user")
     db_pass: str = os.getenv("DB_PASSWORD") # Must be provided in the environment
     db_host: str = os.getenv("DB_HOST", "localhost")

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import uvicorn
-# from app.api.routers.users import router as users_router
+from app.api.routers.redditPosts import router as redditPosts_router
 from app.settings.settings import settings
 from app.database import sessionmanager
 from fastapi import FastAPI
@@ -30,3 +30,9 @@ app = FastAPI(lifespan=lifespan, title=settings.project_name, docs_url="/api/doc
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+# Routers
+app.include_router(redditPosts_router)
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", reload=True, port=settings.app_port, log_level=settings.log_level.lower())
