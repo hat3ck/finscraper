@@ -1,0 +1,6 @@
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base() # model base class
+
+from .reddit_posts import RedditPosts
+from .reddit_comments import RedditComments
