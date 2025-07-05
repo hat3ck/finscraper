@@ -48,7 +48,7 @@ async def get_posts_from_subreddits_service(session: DBSessionDep,
             reddit_posts = [RedditPostCreate(**post) for post in posts]
             await create_reddit_posts_service(session, reddit_posts)
         await session.commit()
-        return f"Successfully fetched and saved posts from {len(subreddits)} subreddits; location UMJGmbCEpr"
+        return f"Successfully fetched and saved posts from {len(subreddits)} subreddits ({', '.join(subreddits)})"
     except Exception as e:
         await session.rollback()
         raise Exception(f"Failed to fetch posts from subreddits: {str(e)}; location UMJGmbCEpr") from e
