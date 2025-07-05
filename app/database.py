@@ -1,7 +1,9 @@
 import contextlib
 from typing import Any, AsyncIterator
+from contextlib import asynccontextmanager
 
-from app.settings.settings import settings
+
+from app.settings.settings import get_settings
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
@@ -9,6 +11,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import declarative_base
+
+settings = get_settings()
 
 Base = declarative_base()
 
@@ -19,6 +23,11 @@ class DatabaseSessionManager:
     def __init__(self, host: str, engine_kwargs: dict[str, Any] = {}):
         self._engine = create_async_engine(host, **engine_kwargs)
         self._sessionmaker = async_sessionmaker(autocommit=False, bind=self._engine)
+
+    def get_engine(self):
+        if self._engine is None:
+            raise Exception("Engine is not initialized")
+        return self._engine
 
     async def close(self):
         if self._engine is None:
@@ -57,7 +66,7 @@ class DatabaseSessionManager:
 
 sessionmanager = DatabaseSessionManager(settings.database_url, {"echo": settings.echo_sql})
 
-
+@asynccontextmanager
 async def get_db_session():
     async with sessionmanager.session() as session:
         yield session

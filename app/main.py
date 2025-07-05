@@ -8,9 +8,11 @@ load_dotenv()
 
 import uvicorn
 from app.api.routers.redditPosts import router as redditPosts_router
-from app.settings.settings import settings
+from app.settings.settings import get_settings
 from app.database import sessionmanager
 from fastapi import FastAPI
+
+settings = get_settings()
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if settings.debug_logs else logging.INFO)
 

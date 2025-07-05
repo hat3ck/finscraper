@@ -42,3 +42,5 @@ sqlalchemy==2.0.41
 asyncpg==0.30.0
 alembic==1.16.2
 psycopg2==2.9.10
+pytest==8.4.1
+pytest-asyncio==1.0.0

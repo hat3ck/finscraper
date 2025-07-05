@@ -1,10 +1,11 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
 import os
 
 class Settings(BaseSettings):
-    env: str = os.getenv("ENV", "dev")
+    env: str = os.getenv("ENV")
     app_port: int = int(os.getenv("APP_PORT", 8000))
-    db_user: str = os.getenv("DB_USER", "dev-user")
+    db_user: str = os.getenv("DB_USER")
     db_pass: str = os.getenv("DB_PASSWORD") # Must be provided in the environment
     db_host: str = os.getenv("DB_HOST", "localhost")
     db_port: int = int(os.getenv("DB_PORT", 5432))
@@ -12,7 +13,10 @@ class Settings(BaseSettings):
     echo_sql: bool = True
     project_name: str
     log_level: str = "DEBUG"
-    debug_logs: bool = True
+    debug_logs: bool = False
+    subreddits: list[str] = ["CryptoCurrency", "Bitcoin", "CryptoMarkets", "Altcoin", "CryptoTechnology", "satoshistreetbets"]
+    posts_per_subreddit: int = 10
+    subreddit_sort: str = "hot"
 
     @property
     def database_url(self) -> str:
@@ -23,4 +27,10 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8"
     )
 
-settings = Settings()
+    @property
+    def sync_database_url(self) -> str:
+        return self.database_url.replace("postgresql+asyncpg", "postgresql")
+
+@lru_cache
+def get_settings():
+    return Settings()
