@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     db_host: str = os.getenv("DB_HOST", "localhost")
     db_port: int = int(os.getenv("DB_PORT", 5432))
     db_name: str = os.getenv("DB_NAME", "dev_db")
-    echo_sql: bool = True
+    echo_sql: bool = False
     project_name: str
     log_level: str = "DEBUG"
     debug_logs: bool = False

@@ -16,6 +16,14 @@ settings = get_settings()
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if settings.debug_logs else logging.INFO)
 
+# --- disable SQLAlchemy logs before ANY imports ---
+for logger_name in list(logging.root.manager.loggerDict.keys()):
+    if logger_name.startswith("sqlalchemy"):
+        logger = logging.getLogger(logger_name)
+        logger.handlers.clear()
+        logger.propagate = False
+        logger.setLevel(logging.CRITICAL)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
