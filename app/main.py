@@ -24,6 +24,10 @@ for logger_name in list(logging.root.manager.loggerDict.keys()):
         logger.propagate = False
         logger.setLevel(logging.CRITICAL)
 
+# Override noisy libraries
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """

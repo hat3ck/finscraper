@@ -1,8 +1,7 @@
 from app.api.dependencies.core import DBSessionDep
 from app.schemas.reddit_posts import RedditPost, RedditPostCreate
 from fastapi import APIRouter, Query
-from app.services.redditPostsService import get_reddit_posts_user_service, create_reddit_posts_service
-from app.services.redditPostsService import get_posts_from_subreddits_service
+from app.services.redditPostsService import RedditPostsService
 from app.settings.settings import get_settings
 
 router = APIRouter(
@@ -22,7 +21,8 @@ async def get_reddit_posts(
     session: DBSessionDep,
     author: str = Query(..., description="Author ID to fetch Reddit posts for")
 ):
-    reddit_posts = await get_reddit_posts_user_service(session, author)
+    reddit_posts_service = RedditPostsService(session)
+    reddit_posts = await reddit_posts_service.get_reddit_posts_user_service(author)
     return reddit_posts
 
 @router.get(
@@ -44,9 +44,9 @@ async def get_posts_from_subreddits(
         posts_per_subreddit = settings.posts_per_subreddit
     if subreddit_sort is None:
         subreddit_sort = settings.subreddit_sort
-    
-    return await get_posts_from_subreddits_service(
-        session,
+
+    reddit_posts_service = RedditPostsService(session)
+    return await reddit_posts_service.get_posts_from_subreddits_service(
         subreddits=subreddits,
         posts_per_subreddit=posts_per_subreddit,
         subreddit_sort=subreddit_sort
@@ -63,5 +63,6 @@ async def create_reddit_posts(
     reddit_posts: list[RedditPostCreate],
     session: DBSessionDep
 ):
-    created_posts = await create_reddit_posts_service(session, reddit_posts)
+    reddit_posts_service = RedditPostsService(session)
+    created_posts = await reddit_posts_service.create_reddit_posts_service(reddit_posts)
     return created_posts

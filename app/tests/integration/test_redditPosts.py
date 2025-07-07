@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import pytest
-from app.services.redditPostsService import get_reddit_posts_user_service, get_reddit_posts_from_subreddit, get_posts_from_subreddits_service
+from app.services.redditPostsService import RedditPostsService
 from app.settings.settings import get_settings
 from sqlalchemy import text
 
@@ -46,7 +46,8 @@ async def test_001_get_reddit_posts_user(session):
         Test fetching posts from a specific Reddit user.
         """
         author = "spez"  # Example author, replace with a valid Reddit username
-        posts = await get_reddit_posts_user_service(session, author)
+        reddit_service = RedditPostsService(session)
+        posts = await reddit_service.get_reddit_posts_user_service(author)
         # should throw an exception if no posts are found
     except Exception as e:
         # make sure j6RHyQVBe2 is in the error message
@@ -56,7 +57,7 @@ async def test_001_get_reddit_posts_user(session):
             assert False, f"Unexpected error for user {author}: {str(e)}"
 
 @pytest.mark.asyncio
-async def test_002_get_reddit_posts_from_subreddit():
+async def test_002_get_reddit_posts_from_subreddit(session):
     """
     Test fetching posts from a subreddit.
     """
@@ -64,7 +65,8 @@ async def test_002_get_reddit_posts_from_subreddit():
     posts_per_subreddit = settings.posts_per_subreddit
     subreddit_sort = settings.subreddit_sort
     
-    posts = await get_reddit_posts_from_subreddit(subreddit, posts_per_subreddit, subreddit_sort)
+    reddit_service = RedditPostsService(session)
+    posts = await reddit_service.get_reddit_posts_from_subreddit(subreddit, posts_per_subreddit, subreddit_sort)
     
     assert isinstance(posts, list), "Posts should be a list"
     assert len(posts) <= posts_per_subreddit, f"Expected at most {posts_per_subreddit} posts, got {len(posts)}"
@@ -76,8 +78,8 @@ async def test_003_get_posts_from_subreddits_service(session):
     Test fetching posts from multiple subreddits.
     """
     try:
-        result = await get_posts_from_subreddits_service(
-            session,
+        reddit_service = RedditPostsService(session)
+        result = await reddit_service.get_posts_from_subreddits_service(
             subreddits=settings.subreddits,
             posts_per_subreddit=settings.posts_per_subreddit,
             subreddit_sort=settings.subreddit_sort)
