@@ -7,6 +7,7 @@ class RedditPosts(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(nullable=False)
+    post_id: Mapped[str] = mapped_column(nullable=False, unique=True)
     subreddit: Mapped[str] = mapped_column(nullable=False)
     author: Mapped[str] = mapped_column(nullable=False)
     score: Mapped[int] = mapped_column(nullable=False)

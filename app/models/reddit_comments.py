@@ -6,7 +6,7 @@ class RedditComments(Base):
     __tablename__ = 'reddit_comments'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    post_id: Mapped[int] = mapped_column(nullable=False)
+    post_id: Mapped[str] = mapped_column(nullable=False)
     parent_id: Mapped[int] = mapped_column(nullable=True)
     author: Mapped[str] = mapped_column(nullable=False)
     body: Mapped[str] = mapped_column(nullable=False)

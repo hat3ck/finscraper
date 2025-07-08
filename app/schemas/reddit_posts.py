@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict
 class RedditPostBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     title: str
+    post_id: str
     subreddit: str
     author: str
     score: int

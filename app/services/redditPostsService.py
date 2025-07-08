@@ -46,7 +46,9 @@ class RedditPostsService(object):
                     print(f"No posts found for subreddit {subreddit}; location fByiL1JTjd")
                     continue
                 print(f"Fetched {len(posts)} posts from subreddit {subreddit}")
-                # call create_reddit_posts_service to save posts to the database
+                # replace id with post_id to avoid conflicts
+                for post in posts:
+                    post["post_id"] = post.pop("id")
                 reddit_posts = [RedditPostCreate(**post) for post in posts]
                 await self.create_reddit_posts_service(reddit_posts)
             await self.session.commit()
