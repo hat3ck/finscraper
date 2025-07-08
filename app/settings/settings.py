@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     subreddits: list[str] = ["CryptoCurrency", "Bitcoin", "CryptoMarkets", "Altcoin", "CryptoTechnology", "satoshistreetbets"]
     posts_per_subreddit: int = 10
     subreddit_sort: str = "hot"
+    comments_per_post: int = 10
+    comment_depth: int = 2
 
     @property
     def database_url(self) -> str:

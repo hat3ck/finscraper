@@ -11,3 +11,9 @@ class RedditComments(BaseModel):
     score: int
     created_utc: int
     depth: int
+
+class RedditCommentCreate(RedditComments):
+    pass  # everything from base, no id
+
+class RedditComment(RedditComments):
+    id: int  # for GET responses
