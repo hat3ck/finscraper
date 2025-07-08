@@ -13,11 +13,9 @@ class RedditCommentsService(object):
         self.settings = settings
     
     async def get_reddit_comments_post_service(self, post_id: str):
-        try:
-            reddit_comments = await get_reddit_comments_post(self.session, post_id)
-            return reddit_comments
-        except Exception as e:
-            raise Exception(f"Failed to fetch comments for post ID {post_id}: {str(e)}; location FxiLhuyTFd") from e
+        # TODO: ADD VALIDATION FOR post_id
+        reddit_comments = await get_reddit_comments_post(self.session, post_id)
+        return reddit_comments
     
     async def create_reddit_comments_service(self, reddit_posts: list[RedditCommentCreate]):
         try:
@@ -26,6 +24,6 @@ class RedditCommentsService(object):
             return created_comments
         except Exception as e:
             await self.session.rollback()
-            raise Exception(f"Failed to create Reddit comments: {str(e)}; location 32bLrb4bCR") from e
+            raise e
         
    
