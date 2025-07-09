@@ -87,3 +87,19 @@ async def test_002_get_reddit_comments_from_reddit(session):
         assert len(converted_comments) > 0, "Expected at least one valid comment."
     except Exception as e:
         pytest.fail(f"Failed to fetch Reddit comments from Reddit API: {str(e)}")
+
+@pytest.mark.asyncio
+async def test_003_fetch_comments_from_reddit_service(session):
+    """
+    Test to fetch comments for a post from reddit using the service.
+    """
+    reddit_comments_service = RedditCommentsService(session)
+    post_id = "1ltnw74"
+    try:
+        result = await reddit_comments_service.fetch_comments_from_reddit_service(post_id)
+        assert isinstance(result, str), "Expected a success message."
+        assert "Successfully fetched and saved" in result
+    except Exception as e:
+        pytest.fail(f"Failed to fetch comments for post {post_id}: {str(e)}")
+    
+    await shutdown_event()

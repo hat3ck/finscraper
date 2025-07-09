@@ -51,7 +51,6 @@ class RedditPostsService(object):
                     post["post_id"] = post.pop("id")
                 reddit_posts = [RedditPostCreate(**post) for post in posts]
                 await self.create_reddit_posts_service(reddit_posts)
-            await self.session.commit()
             return f"Successfully fetched and saved posts from {len(subreddits)} subreddits ({', '.join(subreddits)})"
         except Exception as e:
             await self.session.rollback()

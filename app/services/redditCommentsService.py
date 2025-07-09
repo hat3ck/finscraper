@@ -26,11 +26,35 @@ class RedditCommentsService(object):
             await self.session.rollback()
             raise e
         
-    async def fetch_comments_from_reddit(self, post_id: str):
+    async def fetch_comments_from_reddit_service(self, post_id: str, sort: str = "top"):
+        """
+        Fetches comments for a specific Reddit post.
+        """
+        try:
+            if not post_id:
+                raise ValueError("Post ID must be provided; location JcQQHM85gL")
+            if sort not in ["top", "new", "old", "controversial"]:
+                raise ValueError(f"Invalid sort option: {sort}; location ei0QyQYXxS")
+            
+            comments = await self.fetch_comments_from_reddit(post_id, sort)
+            if not comments:
+                print(f"No comments found for post {post_id}; location X1HfZvbBdQ")
+                return f"No comments found for post {post_id}"
+            
+            reddit_comments = self.convert_comments_to_schema(post_id, comments)
+            await self.create_reddit_comments_service(reddit_comments)
+            return f"Successfully fetched and saved {len(reddit_comments)} comments for post {post_id}"
+        except Exception as e:
+            await self.session.rollback()
+            raise Exception(f"Failed to fetch comments for post {post_id}: {str(e)}; location Zqrn2pdH7J") from e
+         
+        
+    async def fetch_comments_from_reddit(self, post_id: str, sort: str = "top"):
         url = f"https://www.reddit.com/comments/{post_id}.json"
         params = {
             "depth": self.settings.comment_depth,
-            "limit": self.settings.comments_per_post
+            "limit": self.settings.comments_per_post,
+            "sort": sort
         }
         async with httpx.AsyncClient() as client:
             response = await client.get(url, params=params, headers={"User-Agent": "finscraper"})

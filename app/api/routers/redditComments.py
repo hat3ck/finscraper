@@ -25,6 +25,21 @@ async def get_reddit_posts(
     reddit_comments = await reddit_comments_service.get_reddit_comments_post_service(post_id)
     return reddit_comments
 
+@router.get(
+    "/fetch",
+    response_model=str,
+    summary="Fetch Reddit comments for a post",
+    description="Fetches comments for a specific Reddit post and saves them to the database.",
+)
+async def fetch_reddit_comments(
+    session: DBSessionDep,
+    post_id: str = Query(..., description="The ID of the Reddit post to fetch comments for."),
+    sort: str = Query("top", description="Sort order for comments. Options: 'top', 'new', 'old', 'controversial'. Default is 'top'.")
+):
+    reddit_comments_service = RedditCommentsService(session)
+    result = await reddit_comments_service.fetch_comments_from_reddit_service(post_id, sort)
+    return result
+
 @router.post(
     "/",
     response_model=list[RedditCommentCreate],
