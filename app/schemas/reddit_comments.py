@@ -2,7 +2,6 @@ from pydantic import BaseModel, ConfigDict
 
 class RedditComments(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
     post_id: str
     parent_id: str | None = None
     comment_id: str | None = None

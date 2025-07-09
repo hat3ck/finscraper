@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import pytest
-from app.schemas.reddit_comments import RedditCommentCreate
+from app.schemas.reddit_comments import RedditCommentCreate, RedditComment
 from app.services.redditCommentsService import RedditCommentsService
 from app.settings.settings import get_settings
 from sqlalchemy import text
@@ -68,3 +68,22 @@ async def test_001_get_reddit_comments_post_service(session):
         pytest.fail(f"Failed to fetch Reddit comments: {str(e)}")
         
     await shutdown_event()
+
+@pytest.mark.asyncio
+async def test_002_get_reddit_comments_from_reddit(session):
+    """
+    Test to fetch Reddit comments directly from Reddit API.
+    """
+    reddit_comments_service = RedditCommentsService(session)
+    # Confirmed post_id is valid
+    post_id = "1ltnw74"
+    try:
+        comments = await reddit_comments_service.fetch_comments_from_reddit(post_id)
+        assert isinstance(comments, list), "Expected a list of comments."
+        assert len(comments) > 0, "Expected at least one comment."
+        # make sure comments can be converted to RedditCommentCreate schema
+        converted_comments = reddit_comments_service.convert_comments_to_schema(post_id, comments)
+        assert isinstance(converted_comments, list), "Expected a list of converted comments."
+        assert len(converted_comments) > 0, "Expected at least one valid comment."
+    except Exception as e:
+        pytest.fail(f"Failed to fetch Reddit comments from Reddit API: {str(e)}")
