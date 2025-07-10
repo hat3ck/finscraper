@@ -16,9 +16,6 @@ async def get_reddit_comments_post(session: AsyncSession, post_id: str):
     result = await session.execute(query)
     reddit_comments = result.scalars().all()
 
-    if not reddit_comments:
-        raise HTTPException(status_code=404, detail=f"No comments found for post ID {post_id}; location Vyy959uUyu")
-
     return reddit_comments
 
 def create_reddit_comments(session: AsyncSession, reddit_comments: list[RedditCommentCreate]):

@@ -6,6 +6,7 @@ from app.schemas.reddit_posts import RedditPostCreate, RedditPostsAndComments
 from app.settings.settings import get_settings
 import httpx
 from app.services.redditCommentsService import RedditCommentsService
+import time
 
 settings = get_settings()
 
@@ -60,8 +61,6 @@ class RedditPostsService(object):
             # Fetch comments for each post
             all_comments: list[RedditPostCreate] = []
             for post in reddit_posts:
-                # wait 2 seconds between requests to avoid hitting Reddit's rate limit
-                await asyncio.sleep(2)
                 try:
                     post_id = post.post_id
                     # from database post_id has comments, do not fetch comments again
