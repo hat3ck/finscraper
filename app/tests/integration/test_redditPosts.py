@@ -83,8 +83,8 @@ async def test_003_get_posts_from_subreddits_service(session):
             subreddits=settings.subreddits,
             posts_per_subreddit=settings.posts_per_subreddit,
             subreddit_sort=settings.subreddit_sort)
-        await shutdown_event()
-        assert isinstance(result, str), "Result should be a string message"
-        assert "Successfully fetched and saved posts" in result, "Expected success message in result"
+        assert isinstance(result, list), "Result should be a list of RedditPostCreate objects"
+        assert len(result) > 0, "Expected to fetch posts from subreddits"
     except Exception as e:
         assert False, f"Failed to fetch posts from subreddits: {str(e)}"
+    await shutdown_event()
