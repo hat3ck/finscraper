@@ -1,8 +1,9 @@
 # How to update models with alembic?
 
 ```bash
-DB_HOST=[DB_HOST] DB_USER=[DB_USER] DB_PORT=[DB_PORT] DB_PASSWORD=[DB_PASSWORD] DB_NAME=[DB_NAME] alembic revision --autogenerate -m "MESSAGE"
-DB_HOST=[DB_HOST] DB_USER=[DB_USER] DB_PORT=[DB_PORT] DB_PASSWORD=[DB_PASSWORD] DB_NAME=[DB_NAME] alembic upgrade head
+DB_HOST=[DB_HOST] DB_USER=[DB_USER] DB_PORT=[DB_PORT] DB_PASSWORD=[DB_PASSWORD] DB_NAME=[DB_NAME]  REDDIT_CLIENT_ID=[REDDIT_CLIENT_ID] REDDIT_CLIENT_SECRET=[REDDIT_CLIENT_SECRET] alembic revision --autogenerate -m "MESSAGE"
+DB_HOST=[DB_HOST] DB_USER=[DB_USER] DB_PORT=[DB_PORT] DB_PASSWORD=[DB_PASSWORD] DB_NAME=[DB_NAME]
+REDDIT_CLIENT_ID=[REDDIT_CLIENT_ID] REDDIT_CLIENT_SECRET=[REDDIT_CLIENT_SECRET] alembic upgrade head
 ```
 
 # How to update docker image?
@@ -23,6 +24,8 @@ docker run -d --name finscraper \
     -e DB_PORT=[DB_PORT] \
     -e DB_PASSWORD=[DB_PASSWORD] \
     -e DB_NAME=[DB_NAME] \
+    -e REDDIT_CLIENT_ID=[REDDIT_CLIENT_ID] \
+    -e REDDIT_CLIENT_SECRET=[REDDIT_CLIENT_SECRET] \
     -p 8000:8000 \
     ghcr.io/hat3ck/finscraper:[VERSION]
 ```
