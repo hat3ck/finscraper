@@ -6,6 +6,7 @@ from app.settings.settings import get_settings
 from sqlalchemy import text
 import os
 import json
+from .conftest import table_names
 
 from app.database import get_db_session
 
@@ -27,7 +28,6 @@ async def shutdown_event():
     gen = get_db_session()
     try:
         session = await anext(gen)
-        table_names = ["reddit_posts", "reddit_comments"]
         for table in table_names:
             await session.execute(text(f"DELETE FROM {table}"))
         await session.commit()
