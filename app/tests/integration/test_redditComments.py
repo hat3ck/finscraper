@@ -97,8 +97,8 @@ async def test_003_fetch_comments_from_reddit_service(session):
     post_id = "1ltnw74"
     try:
         result = await reddit_comments_service.fetch_comments_from_reddit_service(post_id)
-        assert isinstance(result, str), "Expected a success message."
-        assert "Successfully fetched and saved" in result
+        assert isinstance(result, list), "Expected a list of RedditCommentCreate objects."
+        assert len(result) > 0, "Expected to fetch comments for the post."
     except Exception as e:
         pytest.fail(f"Failed to fetch comments for post {post_id}: {str(e)}")
     

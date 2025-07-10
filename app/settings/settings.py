@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     subreddits: list[str] = ["CryptoCurrency", "Bitcoin", "CryptoMarkets", "BitcoinMarkets", "Altcoin", "CryptoTechnology", "CryptoCurrencyTrading", "CryptoNews"]
     posts_per_subreddit: int = 10
     subreddit_sort: str = "hot"
+    comment_sort: str = "top"
     comments_per_post: int = 20
     comment_depth: int = 3
 

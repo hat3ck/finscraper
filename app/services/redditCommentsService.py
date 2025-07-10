@@ -35,15 +35,17 @@ class RedditCommentsService(object):
                 raise ValueError("Post ID must be provided; location JcQQHM85gL")
             if sort not in ["top", "new", "old", "controversial"]:
                 raise ValueError(f"Invalid sort option: {sort}; location ei0QyQYXxS")
+            if sort is None:
+                sort = self.settings.comment_sort
             
             comments = await self.fetch_comments_from_reddit(post_id, sort)
             if not comments:
                 print(f"No comments found for post {post_id}; location X1HfZvbBdQ")
-                return f"No comments found for post {post_id}"
+                return []
             
             reddit_comments = self.convert_comments_to_schema(post_id, comments)
             await self.create_reddit_comments_service(reddit_comments)
-            return f"Successfully fetched and saved {len(reddit_comments)} comments for post {post_id}"
+            return reddit_comments
         except Exception as e:
             await self.session.rollback()
             raise Exception(f"Failed to fetch comments for post {post_id}: {str(e)}; location Zqrn2pdH7J") from e

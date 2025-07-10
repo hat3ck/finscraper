@@ -88,3 +88,25 @@ async def test_003_get_posts_from_subreddits_service(session):
     except Exception as e:
         assert False, f"Failed to fetch posts from subreddits: {str(e)}"
     await shutdown_event()
+
+@pytest.mark.asyncio
+async def test_004_fetch_posts_and_comments_from_reddit_service(session):
+    """
+    Test fetching posts and comments from Reddit.
+    """
+    try:
+        reddit_service = RedditPostsService(session)
+        result = await reddit_service.fetch_posts_and_comments_from_reddit_service(
+            subreddits=settings.subreddits,
+            posts_per_subreddit=1,
+            subreddit_sort=settings.subreddit_sort,
+            comment_sort="top"
+        )
+        posts, comments = result.posts, result.comments
+        assert isinstance(posts, list), "Posts should be a list of RedditPostCreate objects"
+        assert isinstance(comments, list), "Comments should be a list of RedditCommentCreate objects"
+        assert len(posts) > 0, "Expected to fetch posts from subreddits"
+        assert len(comments) > 0, "Expected to fetch comments for the posts"
+    except Exception as e:
+        assert False, f"Failed to fetch posts and comments from Reddit: {str(e)}"
+    await shutdown_event()

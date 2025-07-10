@@ -1,9 +1,10 @@
 
 from app.api.dependencies.core import DBSessionDep
 from app.helper.redditPosts import get_reddit_posts_user, create_reddit_posts, create_unique_reddit_posts
-from app.schemas.reddit_posts import RedditPostCreate
+from app.schemas.reddit_posts import RedditPostCreate, RedditPostsAndComments
 from app.settings.settings import get_settings
 import httpx
+from app.services.redditCommentsService import RedditCommentsService
 
 settings = get_settings()
 
@@ -26,7 +27,56 @@ class RedditPostsService(object):
         except Exception as e:
             await self.session.rollback()
             raise e
-        
+    
+    async def fetch_posts_and_comments_from_reddit_service(self, 
+                                                           subreddits: list[str] = None,
+                                                           posts_per_subreddit: int = None,
+                                                           subreddit_sort: str = "top",
+                                                           comment_sort: str = "top"):
+        """
+        Fetches posts and comments from Reddit based on the provided sort options.
+        """
+        try:
+            # TODO: ADD VALIDATION 
+            if subreddit_sort not in ["top", "new", "hot", "rising"]:
+                raise ValueError(f"Invalid post sort option: {subreddit_sort}; location 7JrGg6ATEr")
+            if comment_sort not in ["top", "new", "old", "controversial"]:
+                raise ValueError(f"Invalid comment sort option: {comment_sort}; location iXwV5kwdRP")
+            
+            # Fetch posts from configured subreddits
+            if subreddits is None or subreddits == []:
+                subreddits = self.settings.subreddits
+            if posts_per_subreddit is None:
+                posts_per_subreddit = self.settings.posts_per_subreddit
+            if subreddit_sort is None:
+                subreddit_sort = self.settings.subreddit_sort
+            reddit_posts: list[RedditPostCreate] = await self.get_posts_from_subreddits_service(
+                subreddits=subreddits,
+                posts_per_subreddit=posts_per_subreddit,
+                subreddit_sort=subreddit_sort
+            )
+            
+            # Fetch comments for each post
+            all_comments: list[RedditPostCreate] = []
+            for post in reddit_posts:
+                try:
+                    post_id = post.post_id
+                    reddit_comments_service = RedditCommentsService(self.session)
+                    comments = await reddit_comments_service.fetch_comments_from_reddit_service(post_id, comment_sort)
+                    all_comments.extend(comments)
+                    print(f"Fetched {len(comments)} comments for post {post_id}")
+                except Exception as e:
+                    print(f"Failed to fetch comments for post {post.post_id}: {str(e)}; location 0kgrYTra7k")
+                    continue
+            posts_and_comments = RedditPostsAndComments(
+                posts=reddit_posts,
+                comments=all_comments
+            )
+            return posts_and_comments
+        except Exception as e:
+            await self.session.rollback()
+            raise Exception(f"Failed to fetch posts and comments from Reddit: {str(e)}; location HqE4RTwQR9") from e
+
     async def get_posts_from_subreddits_service(self, subreddits: list[str], posts_per_subreddit: int, subreddit_sort: str):
         """
         Fetches posts from specified subreddits.
@@ -39,6 +89,7 @@ class RedditPostsService(object):
                 raise ValueError("Posts per subreddit must be greater than 0; location fByiL1JTjd")
             if subreddit_sort not in ["hot", "new", "top", "rising"]:
                 raise ValueError(f"Invalid subreddit sort option: {subreddit_sort}; location fByiL1JTjd")
+            all_posts: list[RedditPostCreate] = []
             for subreddit in subreddits:
                 reddit_posts: list[RedditPostCreate] = []
                 posts = await self.get_reddit_posts_from_subreddit(subreddit, posts_per_subreddit, subreddit_sort)
@@ -53,9 +104,10 @@ class RedditPostsService(object):
                         reddit_posts.append(RedditPostCreate(**post))
                     except:
                         continue
+                all_posts.extend(reddit_posts)
                 await create_unique_reddit_posts(self.session, reddit_posts)
                 await self.session.commit()
-            return reddit_posts
+            return all_posts
         except Exception as e:
             await self.session.rollback()
             raise Exception(f"Failed to fetch posts from subreddits: {str(e)}; location UMJGmbCEpr") from e

@@ -37,8 +37,8 @@ async def fetch_reddit_comments(
     sort: str = Query("top", description="Sort order for comments. Options: 'top', 'new', 'old', 'controversial'. Default is 'top'.")
 ):
     reddit_comments_service = RedditCommentsService(session)
-    result = await reddit_comments_service.fetch_comments_from_reddit_service(post_id, sort)
-    return result
+    await reddit_comments_service.fetch_comments_from_reddit_service(post_id, sort)
+    return f"Successfully fetched and saved comments for post {post_id} with sort order '{sort}'"
 
 @router.post(
     "/",
