@@ -1,6 +1,6 @@
 
 from app.api.dependencies.core import DBSessionDep
-from app.helper.redditPosts import get_reddit_posts_user, create_reddit_posts
+from app.helper.redditPosts import get_reddit_posts_user, create_reddit_posts, create_unique_reddit_posts
 from app.schemas.reddit_posts import RedditPostCreate
 from app.settings.settings import get_settings
 import httpx
@@ -40,18 +40,22 @@ class RedditPostsService(object):
             if subreddit_sort not in ["hot", "new", "top", "rising"]:
                 raise ValueError(f"Invalid subreddit sort option: {subreddit_sort}; location fByiL1JTjd")
             for subreddit in subreddits:
-
+                reddit_posts: list[RedditPostCreate] = []
                 posts = await self.get_reddit_posts_from_subreddit(subreddit, posts_per_subreddit, subreddit_sort)
                 if not posts:
                     print(f"No posts found for subreddit {subreddit}; location fByiL1JTjd")
                     continue
                 print(f"Fetched {len(posts)} posts from subreddit {subreddit}")
-                # replace id with post_id to avoid conflicts
                 for post in posts:
-                    post["post_id"] = post.pop("id")
-                reddit_posts = [RedditPostCreate(**post) for post in posts]
-                await self.create_reddit_posts_service(reddit_posts)
-            return f"Successfully fetched and saved posts from {len(subreddits)} subreddits ({', '.join(subreddits)})"
+                    try:
+                        # replace id with post_id to avoid conflicts
+                        post["post_id"] = post.pop("id")
+                        reddit_posts.append(RedditPostCreate(**post))
+                    except:
+                        continue
+                await create_unique_reddit_posts(self.session, reddit_posts)
+                await self.session.commit()
+            return reddit_posts
         except Exception as e:
             await self.session.rollback()
             raise Exception(f"Failed to fetch posts from subreddits: {str(e)}; location UMJGmbCEpr") from e

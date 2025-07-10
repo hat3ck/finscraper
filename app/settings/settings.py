@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     project_name: str
     log_level: str = "DEBUG"
     debug_logs: bool = False
-    subreddits: list[str] = ["CryptoCurrency", "Bitcoin", "CryptoMarkets", "Altcoin", "CryptoTechnology", "satoshistreetbets"]
+    subreddits: list[str] = ["CryptoCurrency", "Bitcoin", "CryptoMarkets", "BitcoinMarkets", "Altcoin", "CryptoTechnology", "CryptoCurrencyTrading", "CryptoNews"]
     posts_per_subreddit: int = 10
     subreddit_sort: str = "hot"
     comments_per_post: int = 20

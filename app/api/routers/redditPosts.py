@@ -46,11 +46,12 @@ async def get_posts_from_subreddits(
         subreddit_sort = settings.subreddit_sort
 
     reddit_posts_service = RedditPostsService(session)
-    return await reddit_posts_service.get_posts_from_subreddits_service(
+    await reddit_posts_service.get_posts_from_subreddits_service(
         subreddits=subreddits,
         posts_per_subreddit=posts_per_subreddit,
         subreddit_sort=subreddit_sort
     )
+    return f"Successfully fetched and saved posts from {len(subreddits)} subreddits ({', '.join(subreddits)})"
 
 @router.post(
     "/",

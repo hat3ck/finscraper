@@ -3,6 +3,8 @@ from app.schemas.reddit_posts import RedditPost, RedditPostCreate
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.dialects.postgresql import insert
 
 
 async def get_reddit_posts_user(session: AsyncSession, author: str):
@@ -30,3 +32,23 @@ def create_reddit_posts(session: AsyncSession, reddit_posts: list[RedditPostCrea
     session.add_all(reddit_posts_models)
     
     return reddit_posts_models
+
+async def create_unique_reddit_posts(session: AsyncSession, reddit_posts: list[RedditPostCreate]):
+    """
+    Inserts Reddit posts only if they do not already exist based on post_id.
+    """
+    if not reddit_posts:
+        raise HTTPException(status_code=400, detail="No Reddit posts provided; location 8hgA74JowE")
+
+    try:
+        values = [post.model_dump() for post in reddit_posts]
+
+        stmt = insert(UserRedditPostsModel).values(values)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["post_id"])
+
+        await session.execute(stmt)
+        
+        return values
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error occurred: {str(e)}; location j7NwxTh6hO")
