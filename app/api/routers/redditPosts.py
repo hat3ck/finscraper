@@ -53,6 +53,30 @@ async def get_posts_from_subreddits(
     )
     return f"Successfully fetched and saved posts from {len(subreddits)} subreddits ({', '.join(subreddits)})"
 
+@router.get(
+    "/fetch_posts_and_comments",
+    summary="Fetch posts and comments from Reddit",
+    description="Fetches posts and comments from Reddit based on the provided sort options.",
+    response_description="successfully fetched posts and comments from Reddit",
+)
+async def fetch_posts_and_comments_from_reddit(
+    session: DBSessionDep,
+    subreddits: list[str] = Query(default=None),
+    posts_per_subreddit: int = Query(default=None),
+    comments_per_post: int = Query(default=None),
+    subreddit_sort: str = Query(default="top"),
+    comment_sort: str = Query(default="top")
+):
+    reddit_posts_service = RedditPostsService(session)
+    posts_and_comments = await reddit_posts_service.fetch_posts_and_comments_from_reddit_service(
+        subreddits=subreddits,
+        posts_per_subreddit=posts_per_subreddit,
+        comments_per_post=comments_per_post,
+        subreddit_sort=subreddit_sort,
+        comment_sort=comment_sort
+    )
+    return f"Successfully fetched and saved posts and comments from Reddit: {len(posts_and_comments.posts)} posts, {len(posts_and_comments.comments)} comments"
+
 @router.post(
     "/",
     response_model=list[RedditPostCreate],

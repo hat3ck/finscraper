@@ -99,6 +99,7 @@ async def test_004_fetch_posts_and_comments_from_reddit_service(session):
         result = await reddit_service.fetch_posts_and_comments_from_reddit_service(
             subreddits=settings.subreddits,
             posts_per_subreddit=1,
+            comments_per_post=settings.comments_per_post,
             subreddit_sort=settings.subreddit_sort,
             comment_sort="top"
         )

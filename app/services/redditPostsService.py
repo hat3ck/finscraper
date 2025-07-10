@@ -1,4 +1,5 @@
 
+import asyncio
 from app.api.dependencies.core import DBSessionDep
 from app.helper.redditPosts import get_reddit_posts_user, create_reddit_posts, create_unique_reddit_posts
 from app.schemas.reddit_posts import RedditPostCreate, RedditPostsAndComments
@@ -31,11 +32,9 @@ class RedditPostsService(object):
     async def fetch_posts_and_comments_from_reddit_service(self, 
                                                            subreddits: list[str] = None,
                                                            posts_per_subreddit: int = None,
+                                                           comments_per_post: int = None,
                                                            subreddit_sort: str = "top",
                                                            comment_sort: str = "top"):
-        """
-        Fetches posts and comments from Reddit based on the provided sort options.
-        """
         try:
             # TODO: ADD VALIDATION 
             if subreddit_sort not in ["top", "new", "hot", "rising"]:
@@ -48,6 +47,8 @@ class RedditPostsService(object):
                 subreddits = self.settings.subreddits
             if posts_per_subreddit is None:
                 posts_per_subreddit = self.settings.posts_per_subreddit
+            if comments_per_post is None:
+                comments_per_post = self.settings.comments_per_post
             if subreddit_sort is None:
                 subreddit_sort = self.settings.subreddit_sort
             reddit_posts: list[RedditPostCreate] = await self.get_posts_from_subreddits_service(
@@ -55,13 +56,19 @@ class RedditPostsService(object):
                 posts_per_subreddit=posts_per_subreddit,
                 subreddit_sort=subreddit_sort
             )
-            
+            reddit_comments_service = RedditCommentsService(self.session)
             # Fetch comments for each post
             all_comments: list[RedditPostCreate] = []
             for post in reddit_posts:
+                # wait 2 seconds between requests to avoid hitting Reddit's rate limit
+                await asyncio.sleep(2)
                 try:
                     post_id = post.post_id
-                    reddit_comments_service = RedditCommentsService(self.session)
+                    # from database post_id has comments, do not fetch comments again
+                    existing_comments = await reddit_comments_service.get_reddit_comments_post_service(post_id)
+                    if existing_comments:
+                        print(f"Comments already exist for post {post_id}, skipping fetch; location u2bsHTra7k")
+                        continue
                     comments = await reddit_comments_service.fetch_comments_from_reddit_service(post_id, comment_sort)
                     all_comments.extend(comments)
                     print(f"Fetched {len(comments)} comments for post {post_id}")
