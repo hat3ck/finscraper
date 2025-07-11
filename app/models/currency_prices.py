@@ -7,6 +7,7 @@ class CurrencyPrices(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     currency: Mapped[str] = mapped_column(nullable=False, index=True)
+    name: Mapped[str] = mapped_column(nullable=False)
     price: Mapped[float] = mapped_column(nullable=False)
     price_currency: Mapped[str] = mapped_column(nullable=False)
     timestamp: Mapped[int] = mapped_column(nullable=False)

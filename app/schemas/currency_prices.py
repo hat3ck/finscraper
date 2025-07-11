@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict
 class CurrencyPricesBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     currency: str
+    name: str
     price: float
     price_currency: str
     timestamp: int
