@@ -62,3 +62,28 @@ async def test_001_get_currency_prices_from_coingecko(session):
         
     except Exception as e:
         assert False, f"Unexpected error during fetching currency prices: {str(e)}"
+
+@pytest.mark.asyncio
+async def test_002_create_currency_prices_service(session):
+    """
+    Test creating currency prices in the database.
+    """
+    try:
+        currency_ids = ["bitcoin", "ethereum", "dogecoin"]  # Example currency IDs
+        currency_service = CurrencyPricesService(session)
+
+        # Create currency prices in the database
+        created_prices = await currency_service.create_currency_prices_service(currency_ids)
+        
+        # Check if the created prices are returned correctly
+        assert isinstance(created_prices, list), "Created prices should be a list"
+        assert len(created_prices) > 0, "Created prices list should not be empty"
+        
+        # Validate the structure of the first created price item
+        first_created_price = created_prices[0]
+        assert isinstance(first_created_price, CurrencyPricesCreate), "First created price item should be a CurrencyPrice instance"
+        
+    except Exception as e:
+        assert False, f"Unexpected error during creating currency prices: {str(e)}"
+    
+    await shutdown_event()  # Clean up the database after the test

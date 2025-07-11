@@ -3,7 +3,7 @@ from app.api.dependencies.core import DBSessionDep
 from app.schemas.currency_prices import CurrencyPricesCreate, CurrencyPrice
 from app.settings.settings import get_settings
 from app.services.redditTokenService import RedditTokenService
-from app.helper.currencyPrices import get_currency_prices_from_db
+from app.helper.currencyPrices import get_currency_prices_from_db, create_currency_prices
 import httpx
 import time
 
@@ -16,6 +16,15 @@ class CurrencyPricesService(object):
     async def get_currency_prices_service_from_db(self):
         await get_currency_prices_from_db(self.session)
 
+    async def create_currency_prices_service(self, symbols: list[str] = None):
+        if symbols is None or symbols == []:
+            symbols = self.settings.currency_list
+        currency_prices = await self.fetch_currency_prices_from_coingecko(symbols)
+        if not currency_prices:
+            raise ValueError("No currency prices fetched from CoinGecko; location 1XwnWRu6v8")
+        await create_currency_prices(self.session, currency_prices)
+        return currency_prices
+    
     async def fetch_currency_prices_from_coingecko(self, currency_ids: list[str] = None):
         try:
             if currency_ids is None or currency_ids == []:
@@ -38,7 +47,7 @@ class CurrencyPricesService(object):
                 data = response.json()
                 if not data:
                     raise ValueError("No data returned from CoinGecko API; location BRwbHiJWQc")
-                currency_prices = []
+                currency_prices: list[CurrencyPricesCreate] = []
                 for item in data:
                     try:
                         currency_price = CurrencyPricesCreate(
