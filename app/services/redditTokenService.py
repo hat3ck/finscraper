@@ -19,7 +19,7 @@ class RedditTokenService(object):
                     await delete_reddit_token(self.session, reddit_token.id)
                     self.session.commit()
                 else:
-                    return reddit_token
+                    return reddit_token.access_token
             # If no valid token exists, fetch a new one from Reddit
             reddit_token_data = await self.get_reddit_token_from_reddit()
             if reddit_token_data:
@@ -32,6 +32,8 @@ class RedditTokenService(object):
                 )
                 reddit_token = await create_reddit_token(self.session, reddit_token_create)
                 return reddit_token.access_token
+            else:
+                raise Exception("Failed to fetch Reddit token from Reddit API; location j8we9g2H5K")
         except Exception as e:
             self.session.rollback()
             raise Exception(f"Error fetching Reddit token: {str(e)} location ZENfFU44Ry") from e

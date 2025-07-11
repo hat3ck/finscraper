@@ -6,6 +6,7 @@ from app.schemas.reddit_posts import RedditPostCreate, RedditPostsAndComments
 from app.settings.settings import get_settings
 import httpx
 from app.services.redditCommentsService import RedditCommentsService
+from app.services.redditTokenService import RedditTokenService
 import time
 
 settings = get_settings()
@@ -14,6 +15,7 @@ class RedditPostsService(object):
     def __init__(self, session: DBSessionDep):
         self.session = session
         self.settings = settings
+        self.redditTokenService = RedditTokenService(session)
     
     async def get_reddit_posts_user_service(self, author: str):
          # TODO: ADD VALIDATION FOR AUTHOR ID
@@ -119,10 +121,15 @@ class RedditPostsService(object):
             raise Exception(f"Failed to fetch posts from subreddits: {str(e)}; location UMJGmbCEpr") from e
         
     async def get_reddit_posts_from_subreddit(self, subreddit: str, posts_per_subreddit: int, subreddit_sort: str):
-        url = f"https://www.reddit.com/r/{subreddit}/{subreddit_sort}.json?limit={posts_per_subreddit}"
+        url = f"https://oauth.reddit.com/r/{subreddit}/{subreddit_sort}.json?limit={posts_per_subreddit}"
+        access_token = await self.redditTokenService.get_reddit_token()
+        headers = {
+            "User-Agent": settings.reddit_user_agent,
+            "Authorization": f"Bearer {access_token}"
+        }
         # send a GET request to the Reddit API
         async with httpx.AsyncClient() as client:
-            response = await client.get(url)
+            response = await client.get(url, headers=headers)
             if response.status_code == 200:
                 data = response.json()
                 posts = data.get("data", {}).get("children", [])

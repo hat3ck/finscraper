@@ -4,6 +4,7 @@ from app.helper.redditComments import get_reddit_comments_post, create_reddit_co
 from app.schemas.reddit_comments import RedditCommentCreate
 from app.settings.settings import get_settings
 import httpx
+from app.services.redditTokenService import RedditTokenService
 
 settings = get_settings()
 
@@ -11,6 +12,7 @@ class RedditCommentsService(object):
     def __init__(self, session: DBSessionDep):
         self.session = session
         self.settings = settings
+        self.redditTokenService = RedditTokenService(session)
     
     async def get_reddit_comments_post_service(self, post_id: str):
         # TODO: ADD VALIDATION FOR post_id
@@ -52,14 +54,19 @@ class RedditCommentsService(object):
          
         
     async def fetch_comments_from_reddit(self, post_id: str, sort: str = "top"):
-        url = f"https://www.reddit.com/comments/{post_id}.json"
+        url = f"https://oauth.reddit.com/comments/{post_id}.json"
+        access_token = await self.redditTokenService.get_reddit_token()
         params = {
             "depth": self.settings.comment_depth,
             "limit": self.settings.comments_per_post,
             "sort": sort
         }
+        headers = {
+            "User-Agent": self.settings.reddit_user_agent,
+            "Authorization": f"Bearer {access_token}"
+        }
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params, headers={"User-Agent": "finscraper"})
+            response = await client.get(url, params=params, headers=headers)
             if response.status_code != 200:
                 raise Exception(f"Failed to fetch comments from Reddit: {response.text}")
             data = response.json()
