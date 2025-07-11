@@ -13,3 +13,9 @@ class CurrencyPricesBase(BaseModel):
     total_supply: float | None = None
     ath: float | None = None
     ath_date: str | None = None
+
+class CurrencyPricesCreate(CurrencyPricesBase):
+    pass
+
+class CurrencyPrice(CurrencyPricesBase):
+    id: int
