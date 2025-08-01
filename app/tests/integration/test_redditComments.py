@@ -127,7 +127,6 @@ async def test_004_get_reddit_comments_by_date_range_service(session):
         # create comments in the database
         reddit_comments = [RedditCommentCreate(**comment) for comment in comments_data]
         await reddit_comments_service.create_reddit_comments_service(reddit_comments)
-        # create some comments in the database for the date range
         comments = await reddit_comments_service.get_reddit_comments_date_range_service(start_date, end_date)
         assert isinstance(comments, list), "Expected a list of comments."
         assert all(isinstance(comment, RedditComment) for comment in comments), "Expected all comments to be RedditComment objects."

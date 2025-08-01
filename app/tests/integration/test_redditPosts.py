@@ -1,5 +1,9 @@
 from contextlib import asynccontextmanager
+from datetime import date, timedelta
+import json
+import os
 import pytest
+from app.schemas.reddit_posts import RedditPost, RedditPostCreate
 from app.services.redditPostsService import RedditPostsService
 from app.settings.settings import get_settings
 from sqlalchemy import text
@@ -110,4 +114,36 @@ async def test_004_fetch_posts_and_comments_from_reddit_service(session):
         assert len(comments) > 0, "Expected to fetch comments for the posts"
     except Exception as e:
         assert False, f"Failed to fetch posts and comments from Reddit: {str(e)}"
+    await shutdown_event()
+
+@pytest.mark.asyncio
+async def test_005_get_reddit_posts_by_date_range_service(session):
+    """
+    Test to fetch Reddit posts within a specific date range.
+    """
+    reddit_posts_service = RedditPostsService(session)
+    start_date = "2025-01-01"
+    # end date is set to tomorrow to ensure we have posts
+    end_date = (date.today() + timedelta(days=1)).isoformat()
+    try:
+        # load the posts from file
+        posts_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_redditPosts",
+            "test_005_posts_data.json"
+        )
+        with open(posts_file_path, 'r') as file:
+            posts_data = json.load(file)
+        # create posts in the database
+        reddit_posts = [RedditPostCreate(**post) for post in posts_data]
+        # create some posts in the database for the date range
+        await reddit_posts_service.create_reddit_posts_service(reddit_posts)
+        posts = await reddit_posts_service.get_reddit_posts_by_date_range_service(start_date, end_date)
+        assert isinstance(posts, list), "Expected a list of posts."
+        assert all(isinstance(post, RedditPost) for post in posts), "Expected all posts to be RedditPost objects."
+        assert len(posts) > 0, "Expected at least one post within the date range."
+    except Exception as e:
+        pytest.fail(f"Failed to fetch Reddit posts by date range: {str(e)}")
+    
     await shutdown_event()

@@ -2,6 +2,7 @@
 import asyncio
 from app.api.dependencies.core import DBSessionDep
 from app.helper.redditPosts import get_reddit_posts_user, create_reddit_posts, create_unique_reddit_posts
+from app.helper.redditPosts import get_reddit_posts_by_date_range
 from app.schemas.reddit_posts import RedditPostCreate, RedditPostsAndComments
 from app.settings.settings import get_settings
 import httpx
@@ -22,6 +23,10 @@ class RedditPostsService(object):
         reddit_posts = await get_reddit_posts_user(self.session, author)
         return reddit_posts
     
+    async def get_reddit_posts_by_date_range_service(self, start_date: str, end_date: str):
+        reddit_posts = await get_reddit_posts_by_date_range(self.session, start_date, end_date)
+        return reddit_posts
+
     async def create_reddit_posts_service(self, reddit_posts: list[RedditPostCreate]):
         # TODO: ADD VALIDATION FOR REDDIT POSTS
         try:
