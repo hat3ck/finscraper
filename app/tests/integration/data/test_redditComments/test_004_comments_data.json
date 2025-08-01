@@ -1,0 +1,24 @@
+[
+  {
+    "id": "1",
+    "post_id": "t3_123456",
+    "parent_id": "t1_654321",
+    "comment_id": "t1_789012",
+    "author": "test_user",
+    "body": "This is a test comment.",
+    "score": 10,
+    "created_utc": 1751940718,
+    "depth": 2
+  },
+  {
+    "id": "2",
+    "post_id": "t3_123456",
+    "parent_id": "t1_654321",
+    "comment_id": "t1_789013",
+    "author": "another_user",
+    "body": "This is another test comment.",
+    "score": 5,
+    "created_utc": 1751940719,
+    "depth": 1
+  }
+]

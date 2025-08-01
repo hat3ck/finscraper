@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import pytest
+from datetime import date, timedelta
 from app.schemas.reddit_comments import RedditCommentCreate, RedditComment
 from app.services.redditCommentsService import RedditCommentsService
 from app.settings.settings import get_settings
@@ -101,5 +102,37 @@ async def test_003_fetch_comments_from_reddit_service(session):
         assert len(result) > 0, "Expected to fetch comments for the post."
     except Exception as e:
         pytest.fail(f"Failed to fetch comments for post {post_id}: {str(e)}")
+    
+    await shutdown_event()
+
+@pytest.mark.asyncio
+async def test_004_get_reddit_comments_by_date_range_service(session):
+    """
+    Test to fetch Reddit comments within a specific date range.
+    """
+    reddit_comments_service = RedditCommentsService(session)
+    start_date = "2025-01-01"
+    # end date is set to tomorrow to ensure we have comments
+    end_date = (date.today() + timedelta(days=1)).isoformat()
+    try:
+        # load the comments from file
+        comments_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_redditComments",
+            "test_004_comments_data.json"
+        )
+        with open(comments_file_path, 'r') as file:
+            comments_data = json.load(file)
+        # create comments in the database
+        reddit_comments = [RedditCommentCreate(**comment) for comment in comments_data]
+        await reddit_comments_service.create_reddit_comments_service(reddit_comments)
+        # create some comments in the database for the date range
+        comments = await reddit_comments_service.get_reddit_comments_date_range_service(start_date, end_date)
+        assert isinstance(comments, list), "Expected a list of comments."
+        assert all(isinstance(comment, RedditComment) for comment in comments), "Expected all comments to be RedditComment objects."
+        assert len(comments) > 0, "Expected at least one comment within the date range."
+    except Exception as e:
+        pytest.fail(f"Failed to fetch Reddit comments by date range: {str(e)}")
     
     await shutdown_event()

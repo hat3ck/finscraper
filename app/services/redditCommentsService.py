@@ -1,6 +1,6 @@
 
 from app.api.dependencies.core import DBSessionDep
-from app.helper.redditComments import get_reddit_comments_post, create_reddit_comments
+from app.helper.redditComments import get_reddit_comments_post, create_reddit_comments, get_reddit_comments_by_date_range
 from app.schemas.reddit_comments import RedditCommentCreate
 from app.settings.settings import get_settings
 import httpx
@@ -17,6 +17,10 @@ class RedditCommentsService(object):
     async def get_reddit_comments_post_service(self, post_id: str):
         # TODO: ADD VALIDATION FOR post_id
         reddit_comments = await get_reddit_comments_post(self.session, post_id)
+        return reddit_comments
+    
+    async def get_reddit_comments_date_range_service(self, start_date: str, end_date: str):
+        reddit_comments = await get_reddit_comments_by_date_range(self.session, start_date, end_date)
         return reddit_comments
     
     async def create_reddit_comments_service(self, reddit_posts: list[RedditCommentCreate]):
