@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import pytest
 from app.schemas.llm_providers import LLMProvider, LLMProviderCreate
 from app.services.llmService import LLMService
+from app.services.cohereService import CohereService
 from app.settings.settings import get_settings
 from sqlalchemy import text
 from .conftest import table_names
@@ -72,3 +73,36 @@ async def test_001_get_llm_provider(session):
     except Exception as e:
         pytest.fail(f"Failed to fetch LLM provider: {str(e)}")
     await shutdown_event()
+
+@pytest.mark.asyncio
+async def test_002_generate_text_with_cohere(session):
+        """
+        Test to generate text using Cohere's API.
+        """
+        cohere_service = CohereService(session)
+        try:
+            # load the provider from file under tests/integration/data/test_llm/test_001_provider_data.json
+            provider_file_path = os.path.join(
+                os.path.dirname(__file__),
+                "data",
+                "test_llm",
+                "test_002_provider_data.json"
+            )
+            with open(provider_file_path, 'r') as file:
+                provider_data = json.load(file)
+            
+            # convert to schema
+            provider_data = LLMProvider(**provider_data)
+            # replace the default_api_key with the one from the .env file
+            provider_data.default_api_key = os.getenv("COHERE_API_KEY")
+            
+            prompt = "What is the capital of France?"
+            response_text = await cohere_service.generate_text(prompt, provider_data)
+            assert response_text, "Response text should not be empty."
+            assert isinstance(response_text, str), "Response text should be a string."
+            assert "paris" in response_text.lower(), "Response text should contain 'paris'."
+            
+        except Exception as e:
+            pytest.fail(f"Failed to generate text with Cohere: {str(e)}")
+        
+        await shutdown_event()
