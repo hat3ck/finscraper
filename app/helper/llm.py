@@ -37,3 +37,48 @@ async def create_llm_provider(session: AsyncSession, llm_provider_create: LLMPro
         return LLMProvider.model_validate(llm_provider)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating LLM provider: {str(e)}; location 3O0m2Cqqpc")
+    
+async def update_llm_provider(session: AsyncSession, llm_provider_update: LLMProvider):
+    """
+    Updates an existing LLM provider in the database.
+    """
+    try:
+        query = select(LlmProvidersModel).where(
+            LlmProvidersModel.name == llm_provider_update.name,
+            LlmProvidersModel.model == llm_provider_update.model
+        )
+        result = await session.execute(query)
+        llm_provider = result.scalars().first()
+        if not llm_provider:
+            raise HTTPException(status_code=404, detail=f"LLM provider '{llm_provider_update.name}' not found. location 9V0W1Jn2u")
+        # Update fields
+        for key, value in llm_provider_update.model_dump().items():
+            setattr(llm_provider, key, value)
+        await session.commit()
+        await session.refresh(llm_provider)
+        return LLMProvider.model_validate(llm_provider)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating LLM provider: {str(e)}; location hB2sk82Y3Z")
+    
+async def increment_llm_provider_token_usage(session: AsyncSession, name: str, model: str, tokens: int):
+    """
+    Increments the token usage for a specific LLM provider.
+    """
+    try:
+        query = select(LlmProvidersModel).where(
+            LlmProvidersModel.name == name,
+            LlmProvidersModel.model == model
+        )
+        result = await session.execute(query)
+        llm_provider = result.scalars().first()
+        if not llm_provider:
+            raise HTTPException(status_code=404, detail=f"LLM provider '{name}' not found. location uN5WlH7I8J")
+        
+        llm_provider.total_used_tokens += tokens
+        await session.commit()
+        await session.refresh(llm_provider)
+        return LLMProvider.model_validate(llm_provider)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error incrementing token usage: {str(e)}; location 9K0Lo95Bvr")

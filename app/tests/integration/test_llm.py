@@ -98,12 +98,16 @@ async def test_002_generate_text_with_cohere(session):
             provider_data.default_api_key = os.getenv("COHERE_API_KEY")
             
             prompt = "What is the capital of France?"
-            response_text = await cohere_service.generate_text(prompt, provider_data)
+            response = await cohere_service.generate_text(prompt, provider_data)
+            response_text = response.response_text
+            token_usage = response.token_usage
+            assert token_usage > 0, "Token usage should be greater than 0."
             assert response_text, "Response text should not be empty."
             assert isinstance(response_text, str), "Response text should be a string."
             assert "paris" in response_text.lower(), "Response text should contain 'paris'."
             
         except Exception as e:
+            await shutdown_event()
             pytest.fail(f"Failed to generate text with Cohere: {str(e)}")
         
         await shutdown_event()
@@ -154,8 +158,8 @@ async def test_003_get_sentiments(session):
         assert not response.empty, "Response DataFrame should not be empty."
         assert set(response.columns) == {'post_id', 'comment_id', 'crypto_sentiment', 'future_sentiment', 'emotion', 'subjective'}, "Response DataFrame should have the correct columns."
         assert len(response) == len(data), "Response DataFrame should have the same number of rows as input data."
-        
+        await shutdown_event()
+
     except Exception as e:
+        await shutdown_event()
         pytest.fail(f"Failed to get sentiments: {str(e)}")
-    
-    await shutdown_event()

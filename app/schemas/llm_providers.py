@@ -20,3 +20,7 @@ class LLMProviderCreate(LLMProviderBase):
 
 class LLMProvider(LLMProviderBase):
     id: int  # for GET responses
+
+class GenerateTextResponse(BaseModel):
+    response_text: str
+    token_usage: int

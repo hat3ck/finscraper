@@ -1,7 +1,7 @@
 
 import cohere
 from app.settings.settings import get_settings
-from app.schemas.llm_providers import LLMProvider
+from app.schemas.llm_providers import GenerateTextResponse, LLMProvider
 
 
 class CohereService:
@@ -24,11 +24,14 @@ class CohereService:
                     {"role": "user", "content": prompt}
                 ]
             )
-            response_text = response.message.content[0].text
-            token_usage += response.usage.tokens.input_tokens
-            token_usage += response.usage.tokens.output_tokens
-            # TODO: Add a method to update token usage in the database
-            return response_text
+            response_text = str(response.message.content[0].text)
+            token_usage += int(response.usage.tokens.input_tokens)
+            token_usage += int(response.usage.tokens.output_tokens)
+            response_object = GenerateTextResponse(
+                response_text=response_text,
+                token_usage=token_usage
+            )
+            return response_object
         except Exception as e:
             raise ValueError(f"Failed to initialize Cohere client: {str(e)}; location aqNxMwGz2C")
         

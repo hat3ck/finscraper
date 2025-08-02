@@ -2,7 +2,7 @@ from io import StringIO
 import pandas as pd
 from app.services.cohereService import CohereService
 from app.settings.settings import get_settings
-from app.helper.llm import get_active_llm_provider, create_llm_provider
+from app.helper.llm import get_active_llm_provider, create_llm_provider, increment_llm_provider_token_usage
 from app.schemas.llm_providers import LLMProvider, LLMProviderCreate
 
 
@@ -50,7 +50,10 @@ class LLMService(object):
             llm_provider_config = await self.get_active_llm_provider_service(llm_provider.name)
             response = await self.llmProviders[llm_provider.name].generate_text(prompt, llm_provider_config)
             # parse the response into desired format
-            response_df = self.parse_sentiments_response(data, response)
+            response_df = self.parse_sentiments_response(data, response.response_text)
+            await increment_llm_provider_token_usage(self.session, llm_provider_config.name,
+                                                     llm_provider_config.model,
+                                                     response.token_usage)
             return response_df
         except Exception as e:
             raise ValueError(f"Failed to generate sentiments: {str(e)}; location xtY7QkX8gY")
@@ -69,3 +72,10 @@ class LLMService(object):
             # Throw Exception
             raise Exception
         return response_df
+
+    async def get_reddit_sentiments_by_date_range(self, start_date: str, end_date: str, batch_size: int = 100):
+        # TODO: get posts and comments from Reddit within the date range
+        # TODO: Implement a logic to merge them
+        # TODO: Call get_sentiments method to get the sentiments
+        # TODO: store the results in the database
+        raise NotImplementedError("This method is not implemented yet.")
