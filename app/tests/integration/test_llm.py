@@ -8,6 +8,7 @@ from sqlalchemy import text
 from .conftest import table_names
 import os
 import json
+import pandas as pd
 
 from app.database import get_db_session
 
@@ -106,3 +107,55 @@ async def test_002_generate_text_with_cohere(session):
             pytest.fail(f"Failed to generate text with Cohere: {str(e)}")
         
         await shutdown_event()
+
+@pytest.mark.asyncio
+async def test_003_get_sentiments(session):
+    """
+    Test to get sentiments using the LLMService.
+    """
+    llm_service = LLMService(session)
+    try:
+        # load the provider from file under tests/integration/data/test_llm/test_001_provider_data.json
+        provider_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_llm",
+            "test_003_provider_data.json"
+        )
+        with open(provider_file_path, 'r') as file:
+            provider_data = json.load(file)
+
+        # load the dataframe from file under tests/integration/data/test_llm/test_003_input_data.csv
+        data_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_llm",
+            "test_003_input_data.csv"
+        )
+        data = pd.read_csv(data_file_path)
+        if data.empty:
+            pytest.skip("Input data is empty, skipping test.")
+        
+        # replace the default_api_key with the one from the .env file
+        provider_data['default_api_key'] = os.getenv("COHERE_API_KEY")
+
+        # create the provider in the database
+        provider_data_create = LLMProviderCreate(**provider_data)
+        await llm_service.create_llm_provider(provider_data_create)
+
+        # convert to schema
+        provider_data = LLMProvider(**provider_data)
+
+        # replace the default_api_key with the one from the .env file
+        provider_data.default_api_key = os.getenv("COHERE_API_KEY")
+        
+        response = await llm_service.get_sentiments(data, provider_data)
+        assert isinstance(response, pd.DataFrame), "Response should be a pandas DataFrame."
+        assert not response.empty, "Response DataFrame should not be empty."
+        assert set(response.columns) == {'post_id', 'comment_id', 'crypto_sentiment', 'future_sentiment', 'emotion', 'subjective'}, "Response DataFrame should have the correct columns."
+        assert len(response) == len(data), "Response DataFrame should have the same number of rows as input data."
+        
+    except Exception as e:
+        pytest.fail(f"Failed to get sentiments: {str(e)}")
+    
+    await shutdown_event()
