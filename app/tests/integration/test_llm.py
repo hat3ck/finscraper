@@ -13,7 +13,7 @@ from .conftest import table_names
 import os
 import json
 import pandas as pd
-
+import time
 from app.database import get_db_session
 
 settings = get_settings()
@@ -75,9 +75,10 @@ async def test_001_get_llm_provider(session):
         llm_provider = await llm_provider_service.get_active_llm_provider_service()
         assert llm_provider, "LLM provider should be fetched successfully."
         assert llm_provider.name == provider_data.name, "LLM provider name should match the created provider."
+        await shutdown_event()
     except Exception as e:
+        await shutdown_event()
         pytest.fail(f"Failed to fetch LLM provider: {str(e)}")
-    await shutdown_event()
 
 @pytest.mark.asyncio
 async def test_002_generate_text_with_cohere(session):
@@ -168,7 +169,7 @@ async def test_003_get_sentiments(session):
         await shutdown_event()
         pytest.fail(f"Failed to get sentiments: {str(e)}")
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_004_create_reddit_sentiments(session):
     """
     Test to create Reddit sentiments in the database.
@@ -218,9 +219,14 @@ async def test_004_create_reddit_sentiments(session):
 
         start_date = "2025-01-01"
         end_date = "2026-01-01"
+        
         # get Reddit sentiments by date range
-        result = await llm_service.get_reddit_sentiments_by_date_range(start_date, end_date, batch_size=10)
-        assert result == "Reddit sentiments are being processed in the background. You can check the database for results later.", "Result message should match."
+        result, task = await llm_service.get_reddit_sentiments_by_date_range(start_date, end_date, batch_size=10, return_task=True)
+        assert result == "Reddit sentiments are being processed in the background.", "Result message should indicate processing in the background."
+        
+        # Wait for background task to complete
+        await task
+        
         # Check if Reddit sentiments were created in the database
         query = text("SELECT COUNT(*) FROM reddit_sentiments")
         result = await session.execute(query)

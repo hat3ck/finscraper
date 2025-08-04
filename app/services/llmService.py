@@ -9,6 +9,7 @@ from app.helper.redditSentiments import create_reddit_sentiments
 from app.schemas.llm_providers import LLMProvider, LLMProviderCreate
 from app.schemas.reddit_sentiments import RedditSentimentsCreate
 import time
+import asyncio
 
 class LLMService(object):
     def __init__(self, session):
@@ -79,7 +80,7 @@ class LLMService(object):
             raise Exception
         return response_df
 
-    async def get_reddit_sentiments_by_date_range(self, start_date: str, end_date: str, batch_size: int = 100):
+    async def get_reddit_sentiments_by_date_range(self, start_date: str, end_date: str, batch_size: int = 100, return_task: bool = False):
         # get active LLM provider
         llm_provider_config = await self.get_active_llm_provider_service()
         # get posts and comments from Reddit within the date range
@@ -99,10 +100,15 @@ class LLMService(object):
         selected_df = reddit_posts_comments[['post_id', 'comment_id', 'title', 'selftext', 'body']].copy()
         # divide the data into parts of batch_size rows for each cohere API call
         selected_dfs = [selected_df[i:i+batch_size] for i in range(0, len(selected_df), batch_size)]
-        # TODO: Make this a background task
-        await self.get_reddit_sentiments_dataframes(selected_dfs, llm_provider_config)
-        return "Reddit sentiments are being processed in the background. You can check the database for results later."
-    
+        # Make it a background task due to the long processing time
+        task = asyncio.create_task(
+            self.get_reddit_sentiments_dataframes(selected_dfs, llm_provider_config)
+        )
+        if return_task:
+            return "Reddit sentiments are being processed in the background.", task
+        else:
+            return "Reddit sentiments are being processed in the background."
+
     async def get_reddit_sentiments_dataframes(self, selected_dfs: list[pd.DataFrame], llm_provider: LLMProvider):
         # Call get_sentiments method to get the sentiments
         for part_df in selected_dfs:
