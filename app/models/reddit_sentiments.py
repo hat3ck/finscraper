@@ -1,3 +1,4 @@
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from . import Base
@@ -12,3 +13,7 @@ class RedditSentiments(Base):
     future_sentiment: Mapped[str | None] = mapped_column(nullable=False)
     emotion: Mapped[str | None] = mapped_column(nullable=False)
     subjective: Mapped[str | None] = mapped_column(nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('post_id', 'comment_id', name='uq_post_comment'),
+    )
