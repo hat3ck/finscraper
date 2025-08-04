@@ -1,9 +1,13 @@
 from contextlib import asynccontextmanager
 import pytest
 from app.schemas.llm_providers import LLMProvider, LLMProviderCreate
+from app.schemas.reddit_posts import RedditPostCreate
+from app.schemas.reddit_comments import RedditCommentCreate
 from app.services.llmService import LLMService
 from app.services.cohereService import CohereService
 from app.settings.settings import get_settings
+from app.services.redditCommentsService import RedditCommentsService
+from app.services.redditPostsService import RedditPostsService
 from sqlalchemy import text
 from .conftest import table_names
 import os
@@ -163,3 +167,67 @@ async def test_003_get_sentiments(session):
     except Exception as e:
         await shutdown_event()
         pytest.fail(f"Failed to get sentiments: {str(e)}")
+
+@pytest.mark.asyncio
+async def test_004_create_reddit_sentiments(session):
+    """
+    Test to create Reddit sentiments in the database.
+    """
+    llm_service = LLMService(session)
+    reddit_posts_service = RedditPostsService(session)
+    reddit_comments_service = RedditCommentsService(session)
+    try:
+        # load the provider from file under tests/integration/data/test_llm/test_001_provider_data.json
+        provider_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_llm",
+            "test_004_provider_data.json"
+        )
+        with open(provider_file_path, 'r') as file:
+            provider_data = json.load(file)
+
+        # load reddit_posts and reddit_comments from files
+        reddit_posts_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_llm",
+            "test_004_reddit_posts.csv"
+        )
+        reddit_comments_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_llm",
+            "test_004_reddit_comments.csv"
+        )
+        reddit_posts = pd.read_csv(reddit_posts_file_path, keep_default_na=False)
+        reddit_comments = pd.read_csv(reddit_comments_file_path, keep_default_na=False)
+        # replace the default_api_key with the one from the .env file
+        provider_data['default_api_key'] = os.getenv("COHERE_API_KEY")
+        # create the provider in the database
+        provider_data_create = LLMProviderCreate(**provider_data)
+        await llm_service.create_llm_provider(provider_data_create)
+        # convert to schema
+        provider_data = LLMProvider(**provider_data)
+        # convert the posts and comments to the appropriate schemas
+        reddit_posts_create = [RedditPostCreate(**post) for _, post in reddit_posts.iterrows()]
+        reddit_comments_create = [RedditCommentCreate(**comment) for _, comment in reddit_comments.iterrows()]
+        # create the posts and comments in the database
+        await reddit_posts_service.create_reddit_posts_service(reddit_posts_create)
+        await reddit_comments_service.create_reddit_comments_service(reddit_comments_create)
+
+        start_date = "2025-01-01"
+        end_date = "2026-01-01"
+        # get Reddit sentiments by date range
+        result = await llm_service.get_reddit_sentiments_by_date_range(start_date, end_date, batch_size=10)
+        assert result == "Reddit sentiments are being processed in the background. You can check the database for results later.", "Result message should match."
+        # Check if Reddit sentiments were created in the database
+        query = text("SELECT COUNT(*) FROM reddit_sentiments")
+        result = await session.execute(query)
+        count = result.scalar()
+        assert count > 0, "Reddit sentiments should be created in the database."
+        await shutdown_event()
+
+    except Exception as e:
+        await shutdown_event()
+        pytest.fail(f"Failed to prepare data for Reddit sentiments: {str(e)}")

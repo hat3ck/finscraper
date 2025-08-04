@@ -1,7 +1,7 @@
 from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
-class RedditSentiments(BaseModel):
+class RedditSentimentBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     post_id: str
     comment_id: str
@@ -12,8 +12,8 @@ class RedditSentiments(BaseModel):
 
 
 
-class RedditSentimentsCreate(RedditSentiments):
+class RedditSentimentsCreate(RedditSentimentBase):
     pass  # everything from base, no id
 
-class RedditSentiment(RedditSentiments):
+class RedditSentiment(RedditSentimentBase):
     id: int  # for GET responses

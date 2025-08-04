@@ -1,15 +1,21 @@
 from io import StringIO
 import pandas as pd
 from app.services.cohereService import CohereService
+from app.services.redditCommentsService import RedditCommentsService
+from app.services.redditPostsService import RedditPostsService
 from app.settings.settings import get_settings
 from app.helper.llm import get_active_llm_provider, create_llm_provider, increment_llm_provider_token_usage
+from app.helper.redditSentiments import create_reddit_sentiments
 from app.schemas.llm_providers import LLMProvider, LLMProviderCreate
-
+from app.schemas.reddit_sentiments import RedditSentimentsCreate
+import time
 
 class LLMService(object):
     def __init__(self, session):
         self.session = session
         self.settings = get_settings()
+        self.reddit_comments_service = RedditCommentsService(session)
+        self.reddit_posts_service = RedditPostsService(session)
         cohere_service = CohereService(session)
         self.llmProviders = {
             "cohere": cohere_service,
@@ -74,8 +80,75 @@ class LLMService(object):
         return response_df
 
     async def get_reddit_sentiments_by_date_range(self, start_date: str, end_date: str, batch_size: int = 100):
-        # TODO: get posts and comments from Reddit within the date range
-        # TODO: Implement a logic to merge them
-        # TODO: Call get_sentiments method to get the sentiments
-        # TODO: store the results in the database
-        raise NotImplementedError("This method is not implemented yet.")
+        # get active LLM provider
+        llm_provider_config = await self.get_active_llm_provider_service()
+        # get posts and comments from Reddit within the date range
+        posts = await self.reddit_posts_service.get_reddit_posts_by_date_range_service(start_date, end_date)
+        comments = await self.reddit_comments_service.get_reddit_comments_date_range_service(start_date, end_date)
+        if not posts or not comments:
+            raise ValueError("No posts or comments found in the specified date range. location uM2wFJn2u")
+        # convert posts and comments to DataFrames
+        posts_df = pd.DataFrame([post.model_dump() for post in posts])
+        comments_df = pd.DataFrame([comment.model_dump() for comment in comments])
+        # connect reddit posts and comments using post_id
+        reddit_posts_comments = pd.merge(posts_df, comments_df, on='post_id')
+        # convert created_utc_x and created_utc_y to dates from timestamp
+        reddit_posts_comments['created_utc_x'] = pd.to_datetime(reddit_posts_comments['created_utc_x'], unit='s')
+        reddit_posts_comments['created_utc_y'] = pd.to_datetime(reddit_posts_comments['created_utc_y'], unit='s')
+        # keep post_id, comment_id, title, selftext, body
+        selected_df = reddit_posts_comments[['post_id', 'comment_id', 'title', 'selftext', 'body']].copy()
+        # divide the data into parts of batch_size rows for each cohere API call
+        selected_dfs = [selected_df[i:i+batch_size] for i in range(0, len(selected_df), batch_size)]
+        # TODO: Make this a background task
+        await self.get_reddit_sentiments_dataframes(selected_dfs, llm_provider_config)
+        return "Reddit sentiments are being processed in the background. You can check the database for results later."
+    
+    async def get_reddit_sentiments_dataframes(self, selected_dfs: list[pd.DataFrame], llm_provider: LLMProvider):
+        # Call get_sentiments method to get the sentiments
+        for part_df in selected_dfs:
+            response_df = await self.get_sentiments(part_df, llm_provider)
+            # add a delay of rate limit for api requests
+            delay = await self.calculate_api_request_delay(llm_provider)
+            time.sleep(delay)
+            try:
+                # save the sentiments to the database
+                await self.create_reddit_sentiments(response_df)
+                await self.session.commit()
+            except Exception as e:
+                print(f"Failed to create Reddit sentiments for batch {part_df.index[0]}-{part_df.index[-1]}: {str(e)}; location H7gBbcHpE8")
+                print("Skipping this batch and continuing with the next one.")
+                await self.session.rollback()
+                continue
+        return "Reddit sentiments were created successfully."
+
+    async def create_reddit_sentiments(self, sentiments_df: pd.DataFrame):
+        reddit_sentiments = []
+        for _, row in sentiments_df.iterrows():
+            try:
+                reddit_sentiment = RedditSentimentsCreate(
+                    post_id=row['post_id'],
+                    comment_id=row['comment_id'],
+                    crypto_sentiment=row['crypto_sentiment'],
+                    future_sentiment=row['future_sentiment'],
+                    emotion=row['emotion'],
+                    subjective=row['subjective']
+                )
+                reddit_sentiments.append(reddit_sentiment)
+            except Exception as e:
+                print(f"Failed to create Reddit sentiment for row {row['post_id']}, {row['comment_id']}: {str(e)}; location I3NeT6BfOy")
+                continue
+        # Save to database
+        await create_reddit_sentiments(self.session, reddit_sentiments)
+        return reddit_sentiments
+    
+    async def calculate_api_request_delay(self, llm_provider: LLMProvider):
+        """
+        Calculate the delay based on the LLM provider's rate limits.
+        """
+        if llm_provider.calls_per_minute:
+            requests_per_minute = llm_provider.calls_per_minute
+            if requests_per_minute > 0:
+                delay = 60 / requests_per_minute
+                # add a small buffer to avoid hitting the limit
+                return delay + 0.9
+        return 0.1

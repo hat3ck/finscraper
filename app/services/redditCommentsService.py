@@ -23,9 +23,9 @@ class RedditCommentsService(object):
         reddit_comments = await get_reddit_comments_by_date_range(self.session, start_date, end_date)
         return reddit_comments
     
-    async def create_reddit_comments_service(self, reddit_posts: list[RedditCommentCreate]):
+    async def create_reddit_comments_service(self, reddit_comments: list[RedditCommentCreate]):
         try:
-            created_comments = create_reddit_comments(self.session, reddit_posts)
+            created_comments = create_reddit_comments(self.session, reddit_comments)
             await self.session.commit()
             return created_comments
         except Exception as e:
