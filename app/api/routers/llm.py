@@ -21,5 +21,5 @@ async def get_reddit_sentiments_by_date_range(
     batch_size: int = Query(..., description="Batch size for processing Reddit sentiments.")
 ):
     llm_service = LLMService(session)
-    result = await llm_service.get_reddit_sentiments_by_date_range(start_date, end_date, batch_size=batch_size)
+    result = await llm_service.get_reddit_sentiments_between_dates_service(start_date, end_date, batch_size=batch_size)
     return {"message": result}

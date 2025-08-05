@@ -84,9 +84,8 @@ class LLMService(object):
         # Ensure the combo of post_id and comment_id is unique, otherwise drop duplicates
         response_df.drop_duplicates(subset=['post_id', 'comment_id'], inplace=True)
         return response_df
-
-    async def get_reddit_sentiments_by_date_range(self, start_date: str, end_date: str, batch_size: int, return_task: bool = False):
-        
+    
+    async def get_reddit_sentiments_between_dates_service(self, start_date: str, end_date: str, batch_size: int , return_task: bool = False):
         if not start_date or not end_date:
             raise ValueError("Start date and end date are required. location uNb26Jn2u")
         try:
@@ -97,6 +96,20 @@ class LLMService(object):
             end_date_timestamp = int(end_date.timestamp())
         except ValueError:
             raise ValueError("Invalid date format; use YYYY-MM-DD; location h82Y6Jo2T")
+        
+        return await self.get_reddit_sentiments_by_date_range(
+            start_date_timestamp,
+            end_date_timestamp,
+            batch_size,
+            return_task
+        )
+
+    async def get_reddit_sentiments_by_date_range(self,
+                                                  start_date_timestamp: int,
+                                                  end_date_timestamp: int,
+                                                  batch_size: int,
+                                                  return_task: bool = False):
+
         # update reddit fetch batch size from settings
         if not batch_size:
             batch_size = self.settings.reddit_fetch_batch_size
