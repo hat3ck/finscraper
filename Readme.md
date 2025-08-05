@@ -16,7 +16,7 @@ docker build -t finscraper:[VERSION] .
 
 ```bash
 
-        docker login ghcr.io -u [USERNAMEE] -p [ACCESS_TOKEN]
+        docker login ghcr.io -u [USERNAME] -p [ACCESS_TOKEN]
         docker tag finscraper:[VERSION] ghcr.io/hat3ck/finscraper:[VERSION]
         docker push ghcr.io/hat3ck/finscraper:[VERSION]
 ```
