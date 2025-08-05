@@ -221,7 +221,7 @@ async def test_004_create_reddit_sentiments(session):
         end_date = "2026-01-01"
         
         # get Reddit sentiments by date range
-        result, task = await llm_service.get_reddit_sentiments_between_dates_service(start_date, end_date, batch_size=10, return_task=True)
+        result, task = await llm_service.label_reddit_sentiments_between_dates_service(start_date, end_date, batch_size=10, return_task=True)
         assert result == "Reddit sentiments are being processed in the background.", "Result message should indicate processing in the background."
         
         # Wait for background task to complete
