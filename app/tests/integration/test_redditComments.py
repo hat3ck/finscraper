@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import pytest
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from app.schemas.reddit_comments import RedditCommentCreate, RedditComment
 from app.services.redditCommentsService import RedditCommentsService
 from app.settings.settings import get_settings
@@ -127,7 +127,10 @@ async def test_004_get_reddit_comments_by_date_range_service(session):
         # create comments in the database
         reddit_comments = [RedditCommentCreate(**comment) for comment in comments_data]
         await reddit_comments_service.create_reddit_comments_service(reddit_comments)
-        comments = await reddit_comments_service.get_reddit_comments_date_range_service(start_date, end_date)
+        # get timestamps for the date range
+        start_date_timestamp = int(datetime.strptime(start_date, "%Y-%m-%d").timestamp())
+        end_date_timestamp = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp())
+        comments = await reddit_comments_service.get_reddit_comments_date_range_service(start_date_timestamp, end_date_timestamp)
         assert isinstance(comments, list), "Expected a list of comments."
         assert all(isinstance(comment, RedditComment) for comment in comments), "Expected all comments to be RedditComment objects."
         assert len(comments) > 0, "Expected at least one comment within the date range."
