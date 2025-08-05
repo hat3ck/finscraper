@@ -23,8 +23,10 @@ class RedditPostsService(object):
         reddit_posts = await get_reddit_posts_user(self.session, author)
         return reddit_posts
     
-    async def get_reddit_posts_by_date_range_service(self, start_date: str, end_date: str):
-        reddit_posts = await get_reddit_posts_by_date_range(self.session, start_date, end_date)
+    async def get_reddit_posts_by_date_range_service(self,
+                                                    start_date_timestamp: int,
+                                                    end_date_timestamp: int):
+        reddit_posts = await get_reddit_posts_by_date_range(self.session, start_date_timestamp, end_date_timestamp)
         return reddit_posts
 
     async def create_reddit_posts_service(self, reddit_posts: list[RedditPostCreate]):

@@ -32,29 +32,19 @@ def create_reddit_comments(session: AsyncSession, reddit_comments: list[RedditCo
 
     return reddit_comments_models
 
-async def get_reddit_comments_by_date_range(session: AsyncSession, start_date: str, end_date: str):
+async def get_reddit_comments_by_date_range(session: AsyncSession, start_date: int, end_date: int):
     """
     Fetches Reddit comments within a specific date range.
     """
     if not start_date or not end_date:
         raise HTTPException(status_code=400, detail="Start and end dates are required; location H8NuLTYVBJ")
-    
-    # convert string dates to datetime objects
-    try:
-        start_date = datetime.strptime(start_date, "%Y-%m-%d")
-        # end date will be the end of the day
-        end_date = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1) - timedelta(seconds=1)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format; use YYYY-MM-DD; location PtDRch1fe0")
-    
+        
     if start_date > end_date:
         raise HTTPException(status_code=400, detail="Start date cannot be after end date; location fhgCw4Pvmg")
-    if end_date < start_date:
-        raise HTTPException(status_code=400, detail="End date cannot be before start date; location CXNZUK6hXw")
-
+    
     query = select(UserRedditCommentsModel).where(
-        UserRedditCommentsModel.created_utc >= start_date.timestamp(),
-        UserRedditCommentsModel.created_utc <= end_date.timestamp()
+        UserRedditCommentsModel.created_utc >= start_date,
+        UserRedditCommentsModel.created_utc <= end_date
     )
     result = await session.execute(query)
     reddit_comments = result.scalars().all()

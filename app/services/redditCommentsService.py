@@ -18,9 +18,9 @@ class RedditCommentsService(object):
         # TODO: ADD VALIDATION FOR post_id
         reddit_comments = await get_reddit_comments_post(self.session, post_id)
         return reddit_comments
-    
-    async def get_reddit_comments_date_range_service(self, start_date: str, end_date: str):
-        reddit_comments = await get_reddit_comments_by_date_range(self.session, start_date, end_date)
+
+    async def get_reddit_comments_date_range_service(self, start_date_timestamp: int, end_date_timestamp: int):
+        reddit_comments = await get_reddit_comments_by_date_range(self.session, start_date_timestamp, end_date_timestamp)
         return reddit_comments
     
     async def create_reddit_comments_service(self, reddit_comments: list[RedditCommentCreate]):

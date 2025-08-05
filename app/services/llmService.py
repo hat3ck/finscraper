@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from io import StringIO
 import pandas as pd
 from app.services.cohereService import CohereService
@@ -85,16 +86,25 @@ class LLMService(object):
         return response_df
 
     async def get_reddit_sentiments_by_date_range(self, start_date: str, end_date: str, batch_size: int, return_task: bool = False):
+        
+        if not start_date or not end_date:
+            raise ValueError("Start date and end date are required. location uNb26Jn2u")
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d")
+            # end date will be the end of the day
+            end_date = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1) - timedelta(seconds=1)
+            start_date_timestamp = int(start_date.timestamp())
+            end_date_timestamp = int(end_date.timestamp())
+        except ValueError:
+            raise ValueError("Invalid date format; use YYYY-MM-DD; location h82Y6Jo2T")
         # update reddit fetch batch size from settings
         if not batch_size:
             batch_size = self.settings.reddit_fetch_batch_size
-        if not start_date or not end_date:
-            raise ValueError("Start date and end date are required. location uNb26Jn2u")
         # get active LLM provider
         llm_provider_config = await self.get_active_llm_provider_service()
         # get posts and comments from Reddit within the date range
-        posts = await self.reddit_posts_service.get_reddit_posts_by_date_range_service(start_date, end_date)
-        comments = await self.reddit_comments_service.get_reddit_comments_date_range_service(start_date, end_date)
+        posts = await self.reddit_posts_service.get_reddit_posts_by_date_range_service(start_date_timestamp, end_date_timestamp)
+        comments = await self.reddit_comments_service.get_reddit_comments_date_range_service(start_date_timestamp, end_date_timestamp)
         if not posts or not comments:
             raise ValueError("No posts or comments found in the specified date range. location uM2wFJn2u")
         # convert posts and comments to DataFrames
