@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.models import RedditPosts as UserRedditPostsModel
 from app.schemas.reddit_posts import RedditPost, RedditPostCreate
 from fastapi import HTTPException
@@ -64,7 +64,8 @@ async def get_reddit_posts_by_date_range(session: AsyncSession, start_date: str,
     # convert string dates to datetime objects
     try:
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
-        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+        # end date will be the end of the day
+        end_date = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1) - timedelta(seconds=1)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format; use YYYY-MM-DD; location 3UJCbcHgjS")
     

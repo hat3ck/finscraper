@@ -38,16 +38,17 @@ class LLMService(object):
         There are 5 fields: 'post_id' and 'comment_id' used for identification. 'title' which indicates the title of the post, 'selftext' which shows publisher's text content, and 'body' indicates the comment text.
 
         Given these information, provide the following fields in the output:
-        1- crypto_sentiment:(positive, neutral, negative)
-        2- future_sentiment: (positive, neutral, negative)
-        3- emotion: (happiness, hope, anger, sadness, fear)
-        4- subjective: (yes, no)
+
+        1- crypto_sentiment: acceptable values are ["positive", "neutral", "negative"]
+        2- future_sentiment: acceptable values are ["positive", "neutral", "negative"]
+        3- emotion: acceptable values are ["happiness", "hope", "anger", "sadness", "fear", "neutral"]
+        4- subjective: acceptable values are ["yes", "no"]
 
         Return the full result as a **valid CSV with the same number of rows** and the following columns:
 
         post_id,comment_id,crypto_sentiment,future_sentiment,emotion,subjective
 
-        Do not skip any rows. Do not add explanations. Only return the CSV content.
+        Make sure the values for each field are in the exact format as described in the numbered items above. Do not add any extra spaces. Do not skip any rows. Do not add explanations. Only return the CSV content. 
 
         Data:"""
         data_csv = data.to_csv(index=False)
@@ -73,14 +74,22 @@ class LLMService(object):
         response_df.columns = response_df.columns.str.replace(' ', '')
         # Ensure response has at least 90% of the rows
         min_length = (9/10) * len(data_df)
+        error_length = (2/10) * len(data_df)
         if (len(response_df) < min_length):
-            print(f"[WARNING] Response has {len(response_df)} rows while {min_length} rows are required")
-            print(response_df)
-            # Throw Exception
-            raise Exception
+            print(f"[WARNING] Response has {len(response_df)} rows while at least {min_length} rows are required")
+            # Do nothing, just throw a warning
+        if (len(response_df) > len(data_df) + error_length):
+            raise ValueError(f"Response has {len(response_df)} rows while {len(data_df)} rows are expected; location 9V0W1Jn2u")
+        # Ensure the combo of post_id and comment_id is unique, otherwise drop duplicates
+        response_df.drop_duplicates(subset=['post_id', 'comment_id'], inplace=True)
         return response_df
 
-    async def get_reddit_sentiments_by_date_range(self, start_date: str, end_date: str, batch_size: int = 100, return_task: bool = False):
+    async def get_reddit_sentiments_by_date_range(self, start_date: str, end_date: str, batch_size: int, return_task: bool = False):
+        # update reddit fetch batch size from settings
+        if not batch_size:
+            batch_size = self.settings.reddit_fetch_batch_size
+        if not start_date or not end_date:
+            raise ValueError("Start date and end date are required. location uNb26Jn2u")
         # get active LLM provider
         llm_provider_config = await self.get_active_llm_provider_service()
         # get posts and comments from Reddit within the date range
@@ -125,6 +134,7 @@ class LLMService(object):
                 print("Skipping this batch and continuing with the next one.")
                 await self.session.rollback()
                 continue
+        print(f"Successfully processed {len(selected_dfs)} batches of Reddit sentiments. location u3nm5J8Bw")
         return "Reddit sentiments were created successfully."
 
     async def create_reddit_sentiments(self, sentiments_df: pd.DataFrame):

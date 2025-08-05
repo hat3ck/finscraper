@@ -7,7 +7,7 @@ class RedditSentimentBase(BaseModel):
     comment_id: str
     crypto_sentiment: Literal['negative', 'neutral', 'positive'] | None = None
     future_sentiment: Literal['negative', 'neutral', 'positive'] | None = None
-    emotion: Literal['happiness', 'hope', 'anger', 'sadness', 'fear'] | None = None
+    emotion: Literal['happiness', 'hope', 'anger', 'sadness', 'fear', 'neutral'] | None = None
     subjective: Literal['yes', 'no'] | None = None
 
 

@@ -3,7 +3,7 @@ from app.schemas.reddit_comments import RedditComment, RedditCommentCreate
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 async def get_reddit_comments_post(session: AsyncSession, post_id: str):
@@ -42,14 +42,13 @@ async def get_reddit_comments_by_date_range(session: AsyncSession, start_date: s
     # convert string dates to datetime objects
     try:
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
-        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+        # end date will be the end of the day
+        end_date = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1) - timedelta(seconds=1)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format; use YYYY-MM-DD; location PtDRch1fe0")
     
     if start_date > end_date:
         raise HTTPException(status_code=400, detail="Start date cannot be after end date; location fhgCw4Pvmg")
-    if start_date == end_date:
-        raise HTTPException(status_code=400, detail="Start date and end date cannot be the same; location B5iu0YR8Hn")
     if end_date < start_date:
         raise HTTPException(status_code=400, detail="End date cannot be before start date; location CXNZUK6hXw")
 

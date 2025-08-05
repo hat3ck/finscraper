@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     main_currency: str = "usd"
     currency_list: list[str] = ["btc", "eth", "usdt", "bnb", "xrp", "ada", "sol", "usdc", "doge", "steth", "sui", "trx", "link", "leo", "avax", "xlm", "ton", "shib", "ltc", "xmr", "bgb", "pi", "uni"]
     coingecko_api_key: str = os.getenv("COINGECKO_API_KEY", "")
+    reddit_fetch_batch_size: int = 100
 
     @property
     def database_url(self) -> str:
