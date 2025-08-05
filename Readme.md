@@ -25,7 +25,8 @@ docker build -t finscraper:[VERSION] .
 
 ```bash
 docker run -d --name finscraper \
-    -E ENV=[ENV] \
+    -e ENV=[ENV] \
+    -e APP_PORT=[APP_PORT] \
     -e DB_HOST=[DB_HOST] \
     -e DB_USER=[DB_USER] \
     -e DB_PORT=[DB_PORT] \
