@@ -6,6 +6,12 @@ DB_HOST=[DB_HOST] DB_USER=[DB_USER] DB_PORT=[DB_PORT] DB_PASSWORD=[DB_PASSWORD] 
 REDDIT_CLIENT_ID=[REDDIT_CLIENT_ID] REDDIT_CLIENT_SECRET=[REDDIT_CLIENT_SECRET] COINGECKO_API_KEY=[COINGECKO_API_KEY] alembic upgrade head
 ```
 
+# How to create docker image?
+
+```bash
+docker build -t finscraper:[VERSION] .
+```
+
 # How to update docker image?
 
 ```bash
@@ -19,6 +25,7 @@ REDDIT_CLIENT_ID=[REDDIT_CLIENT_ID] REDDIT_CLIENT_SECRET=[REDDIT_CLIENT_SECRET] 
 
 ```bash
 docker run -d --name finscraper \
+    -E ENV=[ENV] \
     -e DB_HOST=[DB_HOST] \
     -e DB_USER=[DB_USER] \
     -e DB_PORT=[DB_PORT] \
