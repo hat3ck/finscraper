@@ -1,5 +1,7 @@
 
 import asyncio
+
+import pandas as pd
 from app.api.dependencies.core import DBSessionDep
 from app.helper.redditPosts import get_reddit_posts_user, create_reddit_posts, create_unique_reddit_posts
 from app.helper.redditPosts import get_reddit_posts_by_date_range
@@ -144,3 +146,24 @@ class RedditPostsService(object):
                 return [post["data"] for post in posts[:posts_per_subreddit]]
             else:
                 raise Exception(f"Failed to fetch posts from subreddit {subreddit}: {response.status_code} - {response.text}; location fByiL1JTjd")
+            
+    async def get_merge_reddit_posts_comments_range(self,
+                                                    start_date_timestamp: int,
+                                                    end_date_timestamp: int):
+        # initialize RedditCommentsService
+        reddit_comments_service = RedditCommentsService(self.session)
+        # get posts and comments from Reddit within the date range
+        posts = await self.get_reddit_posts_by_date_range_service(start_date_timestamp, end_date_timestamp)
+        comments = await reddit_comments_service.get_reddit_comments_date_range_service(start_date_timestamp, end_date_timestamp)
+        if not posts or not comments:
+            raise ValueError("No posts or comments found in the specified date range. location uM2wFJn2u")
+        # convert posts and comments to DataFrames
+        posts_df = pd.DataFrame([post.model_dump() for post in posts])
+        comments_df = pd.DataFrame([comment.model_dump() for comment in comments])
+        # connect reddit posts and comments using post_id
+        reddit_posts_comments = pd.merge(posts_df, comments_df, on='post_id')
+        # convert created_utc_x and created_utc_y to dates from timestamp
+        reddit_posts_comments['created_utc_x'] = pd.to_datetime(reddit_posts_comments['created_utc_x'], unit='s')
+        reddit_posts_comments['created_utc_y'] = pd.to_datetime(reddit_posts_comments['created_utc_y'], unit='s')
+
+        return reddit_posts_comments        

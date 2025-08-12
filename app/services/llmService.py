@@ -128,20 +128,11 @@ class LLMService(object):
             batch_size = self.settings.reddit_fetch_batch_size
         # get active LLM provider
         llm_provider_config = await self.get_active_llm_provider_service()
-        # get posts and comments from Reddit within the date range
-        posts = await self.reddit_posts_service.get_reddit_posts_by_date_range_service(start_date_timestamp, end_date_timestamp)
-        comments = await self.reddit_comments_service.get_reddit_comments_date_range_service(start_date_timestamp, end_date_timestamp)
-        if not posts or not comments:
-            raise ValueError("No posts or comments found in the specified date range. location uM2wFJn2u")
-        # convert posts and comments to DataFrames
-        posts_df = pd.DataFrame([post.model_dump() for post in posts])
-        comments_df = pd.DataFrame([comment.model_dump() for comment in comments])
-        # connect reddit posts and comments using post_id
-        reddit_posts_comments = pd.merge(posts_df, comments_df, on='post_id')
-        # convert created_utc_x and created_utc_y to dates from timestamp
-        reddit_posts_comments['created_utc_x'] = pd.to_datetime(reddit_posts_comments['created_utc_x'], unit='s')
-        reddit_posts_comments['created_utc_y'] = pd.to_datetime(reddit_posts_comments['created_utc_y'], unit='s')
-        # keep post_id, comment_id, title, selftext, body
+        # Get posts and comments from Reddit within the date range
+        reddit_posts_comments = await self.reddit_posts_service.get_merge_reddit_posts_comments_range(
+            start_date_timestamp,
+            end_date_timestamp
+        )
         selected_df = reddit_posts_comments[['post_id', 'comment_id', 'title', 'selftext', 'body']].copy()
         # divide the data into parts of batch_size rows for each cohere API call
         selected_dfs = [selected_df[i:i+batch_size] for i in range(0, len(selected_df), batch_size)]
