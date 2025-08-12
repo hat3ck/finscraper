@@ -81,4 +81,6 @@ async def test_001_create_ml_model(session):
         # Assert the created model matches the fetched model
         assert active_ml_model == created_ml_model, "Created ML model does not match fetched model."
     except Exception as e:
+        await shutdown_event()
         raise AssertionError(f"Failed to create ML model: {str(e)}")
+    await shutdown_event()
