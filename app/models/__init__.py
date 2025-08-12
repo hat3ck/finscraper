@@ -8,3 +8,6 @@ from .reddit_tokens import RedditTokens
 from .currency_prices import CurrencyPrices
 from .reddit_sentiments import RedditSentiments
 from .llm_providers import LlmProviders
+from .ml_models import MlModels
+from .wallets import Wallets
+from .orders import Orders
