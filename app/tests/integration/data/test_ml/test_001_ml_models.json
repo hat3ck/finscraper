@@ -1,0 +1,27 @@
+{
+  "name": "btc_usd_model",
+  "prediction_currency": "usd",
+  "description": "Test ML Models",
+  "provider": "schikit-learn",
+  "model": "XGBRegressor",
+  "model_type": "regression",
+  "hyperparameters": {
+    "objective": "reg:squarederror",
+    "colsample_bytree": 1.0,
+    "enable_categorical": false,
+    "gamma": 0,
+    "learning_rate": 0.1,
+    "max_depth": 7,
+    "n_estimators": 200,
+    "random_state": 42,
+    "reg_alpha": 0,
+    "reg_lambda": 1,
+    "subsample": 1.0
+  },
+  "numeric_features": ["feature1", "feature2", "feature3"],
+  "categorical_features": ["category1", "category2"],
+  "target_variable": "target_value",
+  "created_utc": 1670000000,
+  "updated_utc": 1670000000,
+  "is_active": true
+}
