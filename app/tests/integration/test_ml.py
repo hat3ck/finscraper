@@ -167,8 +167,11 @@ async def test_002_prepare_sentiment_data(session):
         end_date = int(pd.to_datetime("now").timestamp())
 
         # Prepare the sentiment data
-        sentiment_data = await ml_service.prepare_sentiment_data(start_date, end_date)
+        prepared_date = await ml_service.prepare_sentiment_data(start_date, end_date)
         
+        sentiment_data = prepared_date.train_data
+        last_hour_data = prepared_date.last_hour_data
+
         # Assert that the sentiment data is a DataFrame and not empty
         assert isinstance(sentiment_data, pd.DataFrame), "Sentiment data is not a DataFrame."
         assert not sentiment_data.empty, "Sentiment data is empty."
@@ -188,6 +191,13 @@ async def test_002_prepare_sentiment_data(session):
         
         # Assert that the DataFrame has the expected number of rows
         assert len(sentiment_data) > 0, "Sentiment data has no rows."
+
+        # Assert that the last hour data is a DataFrame and not empty
+        assert isinstance(last_hour_data, pd.DataFrame), "Last hour data is not a DataFrame."
+        assert not last_hour_data.empty, "Last hour data is empty."
+        # Assert that the last hour data contains the expected columns
+        for column in expected_columns:
+            assert column in last_hour_data.columns, f"Column '{column}' is missing from last hour data."
 
     except Exception as e:
         await shutdown_event()

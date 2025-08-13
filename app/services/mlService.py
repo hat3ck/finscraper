@@ -6,7 +6,7 @@ from app.services.redditPostsService import RedditPostsService
 from app.services.llmService import LLMService
 from app.services.currencyPricesService import CurrencyPricesService
 from app.settings.settings import get_settings
-from app.schemas.ml_models import MLModel, MLModelCreate
+from app.schemas.ml_models import MLModel, MLModelCreate, PreparedSentimentData
 from app.helper.mlModels import get_active_ml_model, create_ml_model
 import time
 import asyncio
@@ -42,10 +42,42 @@ class MlService(object):
         # get reddit posts, comments, and sentiments from the beginning of 2025 till now
         start_date = int(datetime(2025, 1, 1).timestamp())
         end_date = int(datetime.now().timestamp())
-        # TODO: IMPLEMENT THE REST
-        # add currency prices to the DataFrame
-        # for each currency call the prediction function
+        # prepare sentiment data
+        prepared_data = await self.prepare_sentiment_data(
+            start_date=start_date,
+            end_date=end_date,
+            prediction_hour_interval=prediction_hour_interval
+        )
+        # DataFrame for the last hour data
+        last_hour_data = prepared_data.last_hour_data
+        # DataFrame for the train data
+        train_data = prepared_data.train_data
+
+        # create a DataFrame for each prediction
         predictions = []
+        # TODO: for each currency call the prediction function
+
+    async def predict_currency_price(self, prepared_df: pd.DataFrame, currency: str):
+        # find an ML model for the currency
+        ml_model = await self.get_active_ml_model(prediction_currency=currency)
+        loaded_model = await self.setup_ml_model(ml_model)
+        # select a subset of the DataFrame for the currency based on model's features and target
+        fields_to_use = ml_model.categorical_features + ml_model.numeric_features + [ml_model.target_variable]
+        currency_df = prepared_df[prepared_df['currency'] == currency][fields_to_use].reset_index(drop=True)
+
+
+    async def setup_ml_model(self, ml_model: MLModel):
+        match ml_model.provider:
+            case "xgboost":
+                # lazy import to avoid circular imports
+                from xgboost import XGBRegressor
+                match ml_model.model:
+                    case "XGBRegressor":
+                        return XGBRegressor(**ml_model.hyperparameters)
+                    case _:
+                        raise ValueError(f"Unsupported XGBoost model: {ml_model.model}; location Rb2Z8uLWg6")
+            case _:
+                raise ValueError(f"Unsupported ML model provider: {ml_model.provider}; location 7uBsE6A3gB")
 
     async def prepare_sentiment_data(self, start_date: int, end_date: int, prediction_hour_interval: int = 12):
         extracted_sentiments = await self.reddit_llm_service.get_reddit_posts_comments_sentiments_by_date_range(
@@ -67,13 +99,24 @@ class MlService(object):
         # 7. calculate a target called price_diff in percentage
         merged_df['price_diff_percentage'] = round((merged_df['future_price'] - merged_df['price_now']) / merged_df['price_now'] * 100, 2)
 
-        # 8. filter out rows where price_now or future_price is NaN
-        filtered_df = merged_df.dropna(subset=['price_now', 'future_price'])
+        # 8. sort filtered_df by date_and_hour
+        sorted_df = merged_df.sort_values(by='date_and_hour')
 
-        # 9. sort filtered_df by date_and_hour
-        sorted_df = filtered_df.sort_values(by='date_and_hour')
+        # 9. get the last hour for prediction of the next interval hours
+        last_hour = sorted_df['date_and_hour'].max()
+        last_hour_df = sorted_df[sorted_df['date_and_hour'] == last_hour]
+        # if there are no rows in last_hour_df, there is nothing to predict so raise an error
+        if last_hour_df.empty:
+            raise ValueError("No data available for the last hour to predict future prices. location Sbt03LN2bR")
 
-        return sorted_df
+        # 10. filter out rows where price_now or future_price is NaN
+        filtered_df = sorted_df.dropna(subset=['price_now', 'future_price'])
+
+        prepared_data = PreparedSentimentData(
+            train_data=filtered_df,
+            last_hour_data=last_hour_df
+        )
+        return prepared_data
 
     async def add_currency_prices_to_sentiment_data(self,
                                                     extracted_sentiments: pd.DataFrame,

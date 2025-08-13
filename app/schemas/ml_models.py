@@ -1,6 +1,6 @@
 from typing import Literal
 from pydantic import BaseModel, ConfigDict
-
+import pandas as pd
 class MLModelBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
@@ -22,3 +22,12 @@ class MLModelCreate(MLModelBase):
 
 class MLModel(MLModelBase):
     id: int
+
+
+class PreparedSentimentData(BaseModel):
+    train_data: pd.DataFrame
+    last_hour_data: pd.DataFrame
+    model_config = {
+        "arbitrary_types_allowed": True
+    }
+

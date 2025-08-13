@@ -28,9 +28,9 @@ async def get_active_ml_model(session: AsyncSession,
         raise HTTPException(status_code=404, detail=f"ML model '{model}' not found or inactive. location jd8nc7RmS")
 
     # convert to schema
-    ml_model = MLModel.model_validate(ml_model)
+    ml_model_converted: MLModel = MLModel.model_validate(ml_model)
 
-    return ml_model
+    return ml_model_converted
 
 async def create_ml_model(session: AsyncSession, ml_model_create: MLModelCreate):
     """

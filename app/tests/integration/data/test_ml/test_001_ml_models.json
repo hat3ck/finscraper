@@ -2,7 +2,7 @@
   "name": "btc_usd_model",
   "prediction_currency": "btc",
   "description": "Predicts BTC price in USD based on Reddit sentiment and market data.",
-  "provider": "schikit-learn",
+  "provider": "xgboost",
   "model": "XGBRegressor",
   "model_type": "regression",
   "hyperparameters": {
