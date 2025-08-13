@@ -6,6 +6,7 @@ from app.services.redditCommentsService import RedditCommentsService
 from app.services.redditPostsService import RedditPostsService
 from app.settings.settings import get_settings
 from app.helper.llm import get_active_llm_provider, create_llm_provider, increment_llm_provider_token_usage
+from app.helper.llm import get_reddit_sentiments_by_post_ids
 from app.helper.redditSentiments import create_reddit_sentiments
 from app.schemas.llm_providers import LLMProvider, LLMProviderCreate
 from app.schemas.reddit_sentiments import RedditSentimentsCreate
@@ -195,3 +196,21 @@ class LLMService(object):
                 # add a small buffer to avoid hitting the limit
                 return delay + 0.9
         return 0.1
+    
+    async def get_reddit_posts_comments_sentiments_by_date_range(self,
+                                                    start_date_timestamp: int,
+                                                    end_date_timestamp: int):
+        reddit_posts_comments = await self.reddit_posts_service.get_merge_reddit_posts_comments_range(
+            start_date_timestamp,
+            end_date_timestamp
+        )
+        # get unique post_id from reddit_posts_comments as a list of strings
+        post_ids = reddit_posts_comments['post_id'].unique().tolist()
+        post_ids = [str(post_id) for post_id in post_ids]
+        # get reddit sentiments by post_ids
+        reddit_sentiments = await get_reddit_sentiments_by_post_ids(self.session, post_ids)
+        # convert to DataFrame
+        sentiments_df = pd.DataFrame([sentiment.model_dump() for sentiment in reddit_sentiments])
+        # merge with reddit_posts_comments on post_id and comment_id
+        merged_df = pd.merge(reddit_posts_comments, sentiments_df, on=['post_id', 'comment_id'], how='inner')
+        return merged_df

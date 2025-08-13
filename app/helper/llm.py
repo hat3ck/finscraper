@@ -1,5 +1,7 @@
 from app.models import LlmProviders as LlmProvidersModel
+from app.models import RedditSentiments as RedditSentimentsModel
 from app.schemas.llm_providers import LLMProvider, LLMProviderCreate
+from app.schemas.reddit_sentiments import RedditSentiment
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -82,3 +84,19 @@ async def increment_llm_provider_token_usage(session: AsyncSession, name: str, m
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error incrementing token usage: {str(e)}; location 9K0Lo95Bvr")
+    
+async def get_reddit_sentiments_by_post_ids(session: AsyncSession, post_ids: list[str]):
+    """
+    Fetches Reddit sentiments for a list of post IDs.
+    """
+    query = select(RedditSentimentsModel).where(
+        RedditSentimentsModel.post_id.in_(post_ids)
+    )
+    result = await session.execute(query)
+    reddit_sentiments = result.scalars().all()
+    
+    if not reddit_sentiments:
+        raise HTTPException(status_code=404, detail="No Reddit sentiments found for the provided post IDs. location jEu3bf3B5r")
+    
+    # convert to schema
+    return [RedditSentiment.model_validate(sentiment) for sentiment in reddit_sentiments]
