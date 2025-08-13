@@ -3,7 +3,7 @@ from app.api.dependencies.core import DBSessionDep
 from app.schemas.currency_prices import CurrencyPricesCreate, CurrencyPrice
 from app.settings.settings import get_settings
 from app.services.redditTokenService import RedditTokenService
-from app.helper.currencyPrices import get_currency_prices_from_db, create_currency_prices
+from app.helper.currencyPrices import get_currency_prices_from_db, create_currency_prices, get_currency_prices_by_date_range
 import httpx
 import time
 
@@ -15,6 +15,9 @@ class CurrencyPricesService(object):
 
     async def get_currency_prices_service_from_db(self):
         await get_currency_prices_from_db(self.session)
+
+    async def get_currency_prices_by_date_range_service(self, start_date: str, end_date: str):
+        return await get_currency_prices_by_date_range(self.session, start_date, end_date)
 
     async def create_currency_prices_service(self, symbols: list[str] = None):
         if symbols is None or symbols == []:

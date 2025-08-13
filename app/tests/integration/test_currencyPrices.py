@@ -5,6 +5,7 @@ from app.services.currencyPricesService import CurrencyPricesService
 from app.settings.settings import get_settings
 from sqlalchemy import text
 from .conftest import table_names
+from datetime import datetime
 import os
 import json
 
@@ -84,6 +85,35 @@ async def test_002_create_currency_prices_service(session):
         assert isinstance(first_created_price, CurrencyPricesCreate), "First created price item should be a CurrencyPrice instance"
         
     except Exception as e:
+        await shutdown_event()
         assert False, f"Unexpected error during creating currency prices: {str(e)}"
     
     await shutdown_event()  # Clean up the database after the test
+
+@pytest.mark.asyncio
+async def test_003_get_currency_prices_by_date_range(session):
+    """
+    Test fetching currency prices by date range.
+    """
+    try:
+        # First, create some currency prices to test with
+        currency_service = CurrencyPricesService(session)
+        currency_ids = ["btc", "eth", "ada"]
+        await currency_service.create_currency_prices_service(currency_ids)
+        # start_date will be beginning of 2025 in timestamp format
+        start_date = datetime(2025, 1, 1).timestamp()
+        # end_date will be now plus 1 day in timestamp format
+        end_date = datetime.now().timestamp() + 86400
+        # Fetch currency prices by date range
+        currency_prices = await currency_service.get_currency_prices_by_date_range_service(
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        # Check if the prices are returned correctly
+        assert isinstance(currency_prices, list), "Currency prices should be a list"
+        assert len(currency_prices) > 0, "Currency prices list should not be empty"
+        
+    except Exception as e:
+        await shutdown_event()
+        assert False, f"Failed to set up date range for test: {str(e)}"
