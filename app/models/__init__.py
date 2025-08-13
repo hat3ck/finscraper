@@ -11,3 +11,4 @@ from .llm_providers import LlmProviders
 from .ml_models import MlModels
 from .wallets import Wallets
 from .orders import Orders
+from .predictions import Predictions
