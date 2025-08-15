@@ -302,10 +302,13 @@ async def test_004_predict_currencies_sentiment(session):
         ml_service = MlService(session)
         # Call the predict_currencies_sentiment method
         prediction_hour_interval = 12
-        result = await ml_service.predict_currencies_sentiment_service(prediction_hour_interval=prediction_hour_interval)
+        result, task = await ml_service.predict_currencies_sentiment_service(prediction_hour_interval=prediction_hour_interval, return_task=True)
         assert isinstance(result, str), "Result is not a string."
-        assert "currencies created successfully." in result, "Result does not contain expected success message."
-        
+        assert "Predictions are being processed in the background" in result, "Result does not contain expected success message."
+
+        # Wait for the background task to complete
+        await task
+
         # Verify that predictions were created in the database
         start_time = int(pd.to_datetime("2025-01-01").timestamp())
         end_time = int(pd.to_datetime("now").timestamp()) + (24 * 3600)
@@ -316,7 +319,7 @@ async def test_004_predict_currencies_sentiment(session):
             end_date=end_time
         )
         assert len(predictions) > 0, "No predictions found for BTC currency."
-        
+
     except Exception as e:
         await shutdown_event()
         raise AssertionError(f"Failed to predict currencies sentiment: {str(e)}")

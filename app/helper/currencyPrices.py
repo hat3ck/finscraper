@@ -33,10 +33,11 @@ async def get_currency_prices_by_date_range(session: AsyncSession, start_date: s
     Fetches currency prices within a specific date range.
     """
     try:
+        # order 
         query = select(CurrencyPricesModel).where(
             CurrencyPricesModel.timestamp >= start_date,
             CurrencyPricesModel.timestamp <= end_date
-        )
+        ).order_by(CurrencyPricesModel.timestamp.asc())
         result = await session.execute(query)
         # convert to list of CurrencyPrice schemas
         currency_prices = [CurrencyPrice.model_validate(price) for price in result.scalars().all()]
