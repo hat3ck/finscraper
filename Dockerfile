@@ -1,5 +1,9 @@
 FROM python:3.11-slim
 
+LABEL version="1.0.7" \
+      description="Added predict currency based on reddit sentiment." \
+      release.date="2025-08-15"
+
 WORKDIR /finscraper
 
 COPY ./requirements.txt /finscraper/requirements.txt
