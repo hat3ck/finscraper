@@ -14,6 +14,7 @@ from app.services.redditCommentsService import RedditCommentsService
 from app.services.redditPostsService import RedditPostsService
 from app.helper.currencyPrices import create_currency_prices
 from app.helper.redditSentiments import create_reddit_sentiments
+from app.helper.predictions import get_predictions_by_currency_date
 from app.services.mlService import MlService
 from sqlalchemy import text
 from .conftest import table_names
@@ -49,6 +50,88 @@ async def shutdown_event():
         await gen.aclose()
         
 
+async def setup_for_ml_service(session, test_number: str):
+    """
+    Setup function to prepare the database for ML service tests.
+    This function creates necessary data in the database.
+    """
+     # STEP 1: Prepare the data in the database
+
+    # Read the currency prices CSV file
+    currency_prices_file_path = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "test_ml",
+        f"test_{test_number}_currency_prices.csv"
+    )
+    currency_prices_df = pd.read_csv(currency_prices_file_path, keep_default_na=False)
+    # Read provuder data from file
+    provider_file_path = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "test_llm",
+        f"test_{test_number}_provider_data.json"
+    )
+    with open(provider_file_path, 'r') as file:
+        provider_data = json.load(file)
+
+    # Read Ml models data from file
+    ml_models_file_path = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "test_ml",
+        f"test_{test_number}_ml_models.json"
+    )
+    with open(ml_models_file_path, 'r') as file:
+        ml_models_data = json.load(file)
+
+    # Read Reddit Sentiments data
+    reddit_sentiments_file_path = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "test_ml",
+        f"test_{test_number}_reddit_sentiments.csv"
+    )
+    reddit_sentiments_df = pd.read_csv(reddit_sentiments_file_path, keep_default_na=False)
+
+    # Read Reddit posts and comments data
+    reddit_posts_file_path = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "test_ml",
+        f"test_{test_number}_reddit_posts.csv"
+    )
+    reddit_posts_df = pd.read_csv(reddit_posts_file_path, keep_default_na=False)
+
+    reddit_comments_file_path = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "test_ml",
+        f"test_{test_number}_reddit_comments.csv"
+    )
+    reddit_comments_df = pd.read_csv(reddit_comments_file_path, keep_default_na=False)
+
+    # convert to schemas
+    currency_prices_create = [CurrencyPricesCreate(**row) for _, row in currency_prices_df.iterrows()]
+    provider_data_create = LLMProviderCreate(**provider_data)
+    reddit_sentiments_create = [RedditSentimentsCreate(**row) for _, row in reddit_sentiments_df.iterrows()]
+    reddit_posts_create = [RedditPostCreate(**post) for _, post in reddit_posts_df.iterrows()]
+    reddit_comments_create = [RedditCommentCreate(**comment) for _, comment in reddit_comments_df.iterrows()]
+    ml_models_create = [MLModelCreate(**model) for model in ml_models_data]
+
+    # Create them in the database
+    llm_service = LLMService(session)
+    reddit_posts_service = RedditPostsService(session)
+    reddit_comments_service = RedditCommentsService(session)
+    ml_service = MlService(session)
+
+    await create_currency_prices(session, currency_prices_create)
+    await llm_service.create_llm_provider(provider_data_create)
+    await create_reddit_sentiments(session, reddit_sentiments_create)
+    await reddit_posts_service.create_reddit_posts_service(reddit_posts_create)
+    await reddit_comments_service.create_reddit_comments_service(reddit_comments_create)
+    await ml_service.create_ml_models(ml_models_create)
+
 @pytest.mark.asyncio
 async def test_000():
     """
@@ -69,24 +152,28 @@ async def test_001_create_ml_model(session):
         with open(ml_model_file_path, 'r') as file:
             ml_model_data = json.load(file)
         
-        # Create ML model schema instance
-        ml_model_create = MLModelCreate(**ml_model_data)
+        # Create a list of MLModelCreate instances
+        ml_models_create = [MLModelCreate.model_validate(model) for model in ml_model_data]
+
 
         # Initialize the ML service
         ml_service = MlService(session)
 
         # Create the ML model
-        created_ml_model = await ml_service.create_ml_model(ml_model_create)
+        created_ml_model = await ml_service.create_ml_models(ml_models_create)
 
         # Get model from the database to verify creation
         active_ml_model = await ml_service.get_active_ml_model(
-            prediction_currency=created_ml_model.prediction_currency,
-            provider=created_ml_model.provider,
-            model=created_ml_model.model
+            prediction_currency=ml_models_create[0].prediction_currency,
+            provider=ml_models_create[0].provider,
+            model=ml_models_create[0].model
         )
 
+        # convert active_ml_model to schema
+        active_ml_model = MLModelCreate.model_validate(active_ml_model)
+
         # Assert the created model matches the fetched model
-        assert active_ml_model == created_ml_model, "Created ML model does not match fetched model."
+        assert active_ml_model == ml_models_create[0], "Created ML model does not match fetched model."
     except Exception as e:
         await shutdown_event()
         raise AssertionError(f"Failed to create ML model: {str(e)}")
@@ -96,68 +183,7 @@ async def test_001_create_ml_model(session):
 async def test_002_prepare_sentiment_data(session):
     try:
         # STEP 1: Prepare the data in the database
-
-        # Read the currency prices CSV file
-        currency_prices_file_path = os.path.join(
-            os.path.dirname(__file__),
-            "data",
-            "test_ml",
-            "test_002_currency_prices.csv"
-        )
-        currency_prices_df = pd.read_csv(currency_prices_file_path, keep_default_na=False)
-        # Read provuder data from file
-        provider_file_path = os.path.join(
-            os.path.dirname(__file__),
-            "data",
-            "test_llm",
-            "test_002_provider_data.json"
-        )
-        with open(provider_file_path, 'r') as file:
-            provider_data = json.load(file)
-
-        # Read Reddit Sentiments data
-        reddit_sentiments_file_path = os.path.join(
-            os.path.dirname(__file__),
-            "data",
-            "test_ml",
-            "test_002_reddit_sentiments.csv"
-        )
-        reddit_sentiments_df = pd.read_csv(reddit_sentiments_file_path, keep_default_na=False)
-
-        # Read Reddit posts and comments data
-        reddit_posts_file_path = os.path.join(
-            os.path.dirname(__file__),
-            "data",
-            "test_ml",
-            "test_002_reddit_posts.csv"
-        )
-        reddit_posts_df = pd.read_csv(reddit_posts_file_path, keep_default_na=False)
-
-        reddit_comments_file_path = os.path.join(
-            os.path.dirname(__file__),
-            "data",
-            "test_ml",
-            "test_002_reddit_comments.csv"
-        )
-        reddit_comments_df = pd.read_csv(reddit_comments_file_path, keep_default_na=False)
-
-        # convert to schemas
-        currency_prices_create = [CurrencyPricesCreate(**row) for _, row in currency_prices_df.iterrows()]
-        provider_data_create = LLMProviderCreate(**provider_data)
-        reddit_sentiments_create = [RedditSentimentsCreate(**row) for _, row in reddit_sentiments_df.iterrows()]
-        reddit_posts_create = [RedditPostCreate(**post) for _, post in reddit_posts_df.iterrows()]
-        reddit_comments_create = [RedditCommentCreate(**comment) for _, comment in reddit_comments_df.iterrows()]
-
-        # Create them in the database
-        llm_service = LLMService(session)
-        reddit_posts_service = RedditPostsService(session)
-        reddit_comments_service = RedditCommentsService(session)
-
-        await create_currency_prices(session, currency_prices_create)
-        await llm_service.create_llm_provider(provider_data_create)
-        await create_reddit_sentiments(session, reddit_sentiments_create)
-        await reddit_posts_service.create_reddit_posts_service(reddit_posts_create)
-        await reddit_comments_service.create_reddit_comments_service(reddit_comments_create)
+        await setup_for_ml_service(session, test_number="002")
 
         assert True, "Data prepared successfully in the database."
 
@@ -238,12 +264,12 @@ async def test_003_predict_currency_price(session):
         last_hour_data_df = pd.read_csv(last_hour_data_file_path, keep_default_na=False)
         
         # Create ML model schema instance
-        ml_model_create = MLModelCreate(**ml_model_data)
+        ml_model_create = [MLModelCreate(**model) for model in ml_model_data]
 
         # Initialize the ML service
         ml_service = MlService(session)
         # Create the ML model
-        created_ml_model = await ml_service.create_ml_model(ml_model_create)
+        created_ml_model = await ml_service.create_ml_models(ml_model_create)
 
         # call the predict_currency_price method
         predicted_price = await ml_service.predict_currency_price(
@@ -263,4 +289,35 @@ async def test_003_predict_currency_price(session):
     except Exception as e:
         await shutdown_event()
         raise AssertionError(f"Failed to  predict currency price: {str(e)}")
+    await shutdown_event()
+
+@pytest.mark.asyncio
+async def test_004_predict_currencies_sentiment(session):
+    try:
+        # Prepare the data in the database
+        await setup_for_ml_service(session, test_number="004")
+        assert True, "Data prepared successfully in the database."
+
+        # Initialize the ML service
+        ml_service = MlService(session)
+        # Call the predict_currencies_sentiment method
+        prediction_hour_interval = 12
+        result = await ml_service.predict_currencies_sentiment_service(prediction_hour_interval=prediction_hour_interval)
+        assert isinstance(result, str), "Result is not a string."
+        assert "currencies created successfully." in result, "Result does not contain expected success message."
+        
+        # Verify that predictions were created in the database
+        start_time = int(pd.to_datetime("2025-01-01").timestamp())
+        end_time = int(pd.to_datetime("now").timestamp()) + (24 * 3600)
+        predictions = await get_predictions_by_currency_date(
+            session=session,
+            currency="btc",
+            start_date=start_time,
+            end_date=end_time
+        )
+        assert len(predictions) > 0, "No predictions found for BTC currency."
+        
+    except Exception as e:
+        await shutdown_event()
+        raise AssertionError(f"Failed to predict currencies sentiment: {str(e)}")
     await shutdown_event()

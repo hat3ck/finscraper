@@ -1,40 +1,42 @@
-{
-  "name": "btc_usd_model",
-  "prediction_currency": "btc",
-  "description": "Predicts BTC price in USD based on Reddit sentiment and market data.",
-  "provider": "xgboost",
-  "model": "XGBRegressor",
-  "model_type": "regression",
-  "hyperparameters": {
-    "objective": "reg:squarederror",
-    "colsample_bytree": 1.0,
-    "enable_categorical": false,
-    "gamma": 0,
-    "learning_rate": 0.1,
-    "max_depth": 7,
-    "n_estimators": 200,
-    "random_state": 42,
-    "reg_alpha": 0,
-    "reg_lambda": 1,
-    "subsample": 1.0
-  },
-  "numeric_features": [
-    "score_x",
-    "score_y",
-    "depth",
-    "market_cap_now",
-    "total_volume_now",
-    "total_supply_now",
-    "hours_since_ath"
-  ],
-  "categorical_features": [
-    "crypto_sentiment",
-    "future_sentiment",
-    "emotion",
-    "subjective"
-  ],
-  "target_variable": "price_diff_percentage",
-  "created_utc": 1754971403,
-  "updated_utc": 1754971403,
-  "is_active": true
-}
+[
+  {
+    "name": "btc_usd_model",
+    "prediction_currency": "btc",
+    "description": "Predicts BTC price in USD based on Reddit sentiment and market data.",
+    "provider": "xgboost",
+    "model": "XGBRegressor",
+    "model_type": "regression",
+    "hyperparameters": {
+      "objective": "reg:squarederror",
+      "colsample_bytree": 1.0,
+      "enable_categorical": false,
+      "gamma": 0,
+      "learning_rate": 0.1,
+      "max_depth": 7,
+      "n_estimators": 200,
+      "random_state": 42,
+      "reg_alpha": 0,
+      "reg_lambda": 1,
+      "subsample": 1.0
+    },
+    "numeric_features": [
+      "score_x",
+      "score_y",
+      "depth",
+      "market_cap_now",
+      "total_volume_now",
+      "total_supply_now",
+      "hours_since_ath"
+    ],
+    "categorical_features": [
+      "crypto_sentiment",
+      "future_sentiment",
+      "emotion",
+      "subjective"
+    ],
+    "target_variable": "price_diff_percentage",
+    "created_utc": 1754971403,
+    "updated_utc": 1754971403,
+    "is_active": true
+  }
+]

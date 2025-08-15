@@ -1,4 +1,4 @@
-from app.models import MlModels as MlModelsModel
+from app.models.ml_models import MlModels as MlModelsModel
 from app.schemas.ml_models import MLModel, MLModelCreate
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -44,3 +44,15 @@ async def create_ml_model(session: AsyncSession, ml_model_create: MLModelCreate)
         return MLModel.model_validate(ml_model)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating ML model: {str(e)}; location 8Sb5CjBrZ")
+    
+async def create_ml_models(session: AsyncSession, ml_models_create: list[MLModelCreate]):
+    """
+    Creates multiple ML models in the database.
+    """
+    try:
+        ml_models = [MlModelsModel(**model.model_dump()) for model in ml_models_create]
+        session.add_all(ml_models)
+        await session.commit()
+        return ml_models
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating ML models: {str(e)}; location f9RM8Sdj8P")

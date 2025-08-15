@@ -7,7 +7,8 @@ from app.services.currencyPricesService import CurrencyPricesService
 from app.settings.settings import get_settings
 from app.schemas.ml_models import MLModel, MLModelCreate, PreparedSentimentData
 from app.schemas.predictions import PredictionsCreate
-from app.helper.mlModels import get_active_ml_model, create_ml_model
+from app.helper.mlModels import get_active_ml_model, create_ml_models
+from app.helper.predictions import create_predictions
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from xgboost import XGBRegressor
@@ -29,34 +30,56 @@ class MlService(object):
             model=model
         )
         return ml_model
-    
-    async def create_ml_model(self, ml_model_create: MLModelCreate):
-        ml_model = await create_ml_model(
+
+    async def create_ml_models(self, ml_models_create: list[MLModelCreate]):
+        ml_models = await create_ml_models(
             session=self.session,
-            ml_model_create=ml_model_create
+            ml_models_create=ml_models_create
         )
-        return ml_model
+        return ml_models
 
-    async def predict_currencies_sentiment(self, prediction_hour_interval: int = 12):
-        # Get a list of currencies to predict
-        currencies = self.settings.currency_list
-        # get reddit posts, comments, and sentiments from the beginning of 2025 till now
-        start_date = int(datetime(2025, 1, 1).timestamp())
-        end_date = int(datetime.now().timestamp())
-        # prepare sentiment data
-        prepared_data = await self.prepare_sentiment_data(
-            start_date=start_date,
-            end_date=end_date,
-            prediction_hour_interval=prediction_hour_interval
-        )
-        # DataFrame for the last hour data
-        last_hour_data = prepared_data.last_hour_data
-        # DataFrame for the train data
-        train_data = prepared_data.train_data
+    async def predict_currencies_sentiment_service(self, prediction_hour_interval: int = 12):
+        try:
+            # Get a list of currencies to predict
+            currencies = self.settings.currency_list
+            # get reddit posts, comments, and sentiments from the beginning of 2025 till now
+            start_date = int(datetime(2025, 1, 1).timestamp())
+            end_date = int(datetime.now().timestamp())
+            # prepare sentiment data
+            prepared_data = await self.prepare_sentiment_data(
+                start_date=start_date,
+                end_date=end_date,
+                prediction_hour_interval=prediction_hour_interval
+            )
+            # DataFrame for the last hour data
+            last_hour_data = prepared_data.last_hour_data
+            # DataFrame for the train data
+            train_data = prepared_data.train_data
 
-        # create a DataFrame for each prediction
-        predictions = []
-        # TODO: for each currency call the prediction function
+            # predictions are a list of PredictionsCreate objects
+            predictions = []
+            for currency in currencies:
+                try:
+                    # Predict the price for each currency
+                    prediction = await self.predict_currency_price(
+                        prepared_df=train_data,
+                        prediction_df=last_hour_data,
+                        currency=currency,
+                        hour_interval=prediction_hour_interval
+                    )
+                    predictions.append(prediction)
+                except Exception as e:
+                    print(f"Error predicting price for {currency}: {str(e)}; location dI3Dbg4Huw")
+                    continue
+            if not predictions:
+                raise ValueError("No predictions were made for any currency; location s94HgkLp3")
+            # Save predictions to the database
+            await create_predictions(session=self.session, prediction_create=predictions)
+            await self.session.commit()
+            return f"Predictions for {len(predictions)} currencies created successfully."
+        except Exception as e:
+            await self.session.rollback()
+            raise ValueError(f"Failed to predict currencies sentiment: {str(e)}") from e
 
     async def predict_currency_price(self, prepared_df: pd.DataFrame, prediction_df: pd.DataFrame, currency: str, hour_interval: int = 12):
         # find an ML model for the currency
