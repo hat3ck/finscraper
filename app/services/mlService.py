@@ -6,6 +6,7 @@ from app.services.llmService import LLMService
 from app.services.currencyPricesService import CurrencyPricesService
 from app.settings.settings import get_settings
 from app.schemas.ml_models import MLModel, MLModelCreate, PreparedSentimentData
+from app.schemas.predictions import PredictionsCreate
 from app.helper.mlModels import get_active_ml_model, create_ml_model
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -57,7 +58,7 @@ class MlService(object):
         predictions = []
         # TODO: for each currency call the prediction function
 
-    async def predict_currency_price(self, prepared_df: pd.DataFrame, prediction_df: pd.DataFrame, currency: str):
+    async def predict_currency_price(self, prepared_df: pd.DataFrame, prediction_df: pd.DataFrame, currency: str, hour_interval: int = 12):
         # find an ML model for the currency
         ml_model = await self.get_active_ml_model(prediction_currency=currency)
         loaded_model = await self.setup_ml_model(ml_model)
@@ -93,9 +94,25 @@ class MlService(object):
             raise ValueError(f"No predictions made for currency: {currency}; location jd2uNjgfp5")
         
         # Calculate the future price based on the current price and the mean prediction
-        future_price = round(current_price * (1 + mean_prediction / 100), 2)
+        future_price = current_price * (1 + mean_prediction / 100)
 
-        return future_price
+        # prediction timestamp is now plus added hours as interval in unix timestamp
+        current_time = int(datetime.now().timestamp())
+        prediction_timestamp = int(current_time + (hour_interval * 3600))
+
+        # Create a PredictionsCreate object
+        prediction_obj = PredictionsCreate(
+            currency=currency,
+            priced_in= self.settings.main_currency,
+            currency_price=current_price,
+            model_provider= ml_model.provider,
+            model= ml_model.model,
+            predicted_price= future_price,
+            prediction_timestamp= prediction_timestamp,
+            created_utc= current_time
+        )
+
+        return prediction_obj
 
     async def preprocess_data_and_prediction_df(self, ml_model: MLModel, X: pd.DataFrame, X_test: pd.DataFrame):
         # Define transformers

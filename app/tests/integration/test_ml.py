@@ -6,6 +6,7 @@ from app.schemas.reddit_comments import RedditCommentCreate
 from app.schemas.currency_prices import CurrencyPricesCreate
 from app.schemas.llm_providers import LLMProviderCreate
 from app.schemas.reddit_sentiments import RedditSentimentsCreate
+from app.schemas.predictions import PredictionsCreate
 from app.services.llmService import LLMService
 from app.services.cohereService import CohereService
 from app.settings.settings import get_settings
@@ -20,6 +21,7 @@ import os
 import json
 import pandas as pd
 import time
+from datetime import datetime
 from app.database import get_db_session
 
 settings = get_settings()
@@ -247,13 +249,18 @@ async def test_003_predict_currency_price(session):
         predicted_price = await ml_service.predict_currency_price(
             prepared_df=prepared_data_df,
             prediction_df=last_hour_data_df,
-            currency="eth"
+            currency="btc",
+            hour_interval=12  # Assuming we want to predict for the next 12 hours
         )
-        # Assert that the predicted price is a float
-        assert isinstance(predicted_price, float), "Predicted price is not a float."
-        assert predicted_price > 0, "Predicted price should be greater than 0."
-
+        assert isinstance(predicted_price, PredictionsCreate), "Predicted price is not a PredictionsCreate object."
+        assert hasattr(predicted_price, 'currency'), "Predicted price does not have 'currency' attribute."
+        assert hasattr(predicted_price, 'predicted_price'), "Predicted price does not have 'predicted_price' attribute."
+        assert hasattr(predicted_price, 'created_utc'), "Predicted price does not have 'created_utc' attribute."
+        assert predicted_price.currency == "btc", "Predicted currency does not match expected value."
+        assert isinstance(predicted_price.predicted_price, float), "predicted_price is not a float."
+        assert isinstance(predicted_price.created_utc, int), "Created UTC is not an int."
+        assert predicted_price.prediction_timestamp == int(predicted_price.created_utc + (12 * 3600)), "Prediction timestamp is not correct."
     except Exception as e:
         await shutdown_event()
-        raise AssertionError(f"Failed to load ML model data: {str(e)}")
+        raise AssertionError(f"Failed to  predict currency price: {str(e)}")
     await shutdown_event()
