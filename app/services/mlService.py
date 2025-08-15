@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta
-from io import StringIO
+from datetime import datetime
 import pandas as pd
 from app.services.redditCommentsService import RedditCommentsService
 from app.services.redditPostsService import RedditPostsService
@@ -8,8 +7,9 @@ from app.services.currencyPricesService import CurrencyPricesService
 from app.settings.settings import get_settings
 from app.schemas.ml_models import MLModel, MLModelCreate, PreparedSentimentData
 from app.helper.mlModels import get_active_ml_model, create_ml_model
-import time
-import asyncio
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from xgboost import XGBRegressor
 
 class MlService(object):
     def __init__(self, session):
@@ -57,20 +57,67 @@ class MlService(object):
         predictions = []
         # TODO: for each currency call the prediction function
 
-    async def predict_currency_price(self, prepared_df: pd.DataFrame, currency: str):
+    async def predict_currency_price(self, prepared_df: pd.DataFrame, prediction_df: pd.DataFrame, currency: str):
         # find an ML model for the currency
         ml_model = await self.get_active_ml_model(prediction_currency=currency)
         loaded_model = await self.setup_ml_model(ml_model)
+        # get the current price of the currency and convert it to a float
+        current_price = float(prepared_df[prepared_df['currency'] == currency]['price_now'].iloc[0])
         # select a subset of the DataFrame for the currency based on model's features and target
         fields_to_use = ml_model.categorical_features + ml_model.numeric_features + [ml_model.target_variable]
         currency_df = prepared_df[prepared_df['currency'] == currency][fields_to_use].reset_index(drop=True)
+        currency_prediction_df = prediction_df[prediction_df['currency'] == currency][fields_to_use].reset_index(drop=True)
+        if currency_df.empty or currency_prediction_df.empty:
+            raise ValueError(f"No data available for currency: {currency}; location j4bf86U5gC")
+        X = currency_df.drop(columns=[ml_model.target_variable])
+        y = currency_df[ml_model.target_variable]
 
+        X_test = currency_prediction_df.drop(columns=[ml_model.target_variable])
+
+        # Pre-process the data
+        X_transformed, X_pred_transformed = await self.preprocess_data_and_prediction_df(ml_model, X, X_test)
+                
+        # Fit the model
+        loaded_model.fit(X_transformed, y)
+
+        # Make predictions
+        predictions = loaded_model.predict(X_pred_transformed)
+
+        mean_prediction = None
+        # get the mean of the predictions and try to convert to a float
+        try:
+            mean_prediction = float(predictions.mean())
+        except Exception as e:
+            raise ValueError(f"Failed to convert predictions to float: {str(e)}; location nsE65tBfK")
+        if mean_prediction is None:
+            raise ValueError(f"No predictions made for currency: {currency}; location jd2uNjgfp5")
+        
+        # Calculate the future price based on the current price and the mean prediction
+        future_price = round(current_price * (1 + mean_prediction / 100), 2)
+
+        return future_price
+
+    async def preprocess_data_and_prediction_df(self, ml_model: MLModel, X: pd.DataFrame, X_test: pd.DataFrame):
+        # Define transformers
+        numeric_transformer = StandardScaler()
+        categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', numeric_transformer, ml_model.numeric_features),
+                ('cat', categorical_transformer, ml_model.categorical_features)
+            ]
+        )
+        # Fit and transform X
+        X_transformed = preprocessor.fit_transform(X)
+        # Transform the prediction DataFrame
+        X_pred_transformed = preprocessor.transform(X_test)
+
+        return X_transformed, X_pred_transformed
 
     async def setup_ml_model(self, ml_model: MLModel):
         match ml_model.provider:
             case "xgboost":
-                # lazy import to avoid circular imports
-                from xgboost import XGBRegressor
                 match ml_model.model:
                     case "XGBRegressor":
                         return XGBRegressor(**ml_model.hyperparameters)
@@ -198,7 +245,3 @@ class MlService(object):
             how='left'
         )
         return merged_df
-
-    async def predict_currency_sentiment(self, currency: str, data_df: pd.DataFrame, prediction_interval: str = "12h"):
-        # TODO: IMPLEMENT filter data_df for the currency
-        currency_df = data_df[data_df['currency'] == currency]

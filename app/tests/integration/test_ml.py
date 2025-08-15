@@ -203,3 +203,57 @@ async def test_002_prepare_sentiment_data(session):
         await shutdown_event()
         raise AssertionError(f"Failed to prepare data in ML service: {str(e)}")
     await shutdown_event()
+
+@pytest.mark.asyncio
+async def test_003_predict_currency_price(session):
+    try:
+        # Load the ML model data from file
+        ml_model_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_ml",
+            "test_003_ml_models.json"
+        )
+        with open(ml_model_file_path, 'r') as file:
+            ml_model_data = json.load(file)
+
+        # load prepared sentiment data
+        prepared_data_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_ml",
+            "test_003_prepared_sentiment_data.csv"
+        )
+        prepared_data_df = pd.read_csv(prepared_data_file_path, keep_default_na=False)
+
+        # load last hour data
+        last_hour_data_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "test_ml",
+            "test_003_last_hour_data.csv"
+        )
+        last_hour_data_df = pd.read_csv(last_hour_data_file_path, keep_default_na=False)
+        
+        # Create ML model schema instance
+        ml_model_create = MLModelCreate(**ml_model_data)
+
+        # Initialize the ML service
+        ml_service = MlService(session)
+        # Create the ML model
+        created_ml_model = await ml_service.create_ml_model(ml_model_create)
+
+        # call the predict_currency_price method
+        predicted_price = await ml_service.predict_currency_price(
+            prepared_df=prepared_data_df,
+            prediction_df=last_hour_data_df,
+            currency="eth"
+        )
+        # Assert that the predicted price is a float
+        assert isinstance(predicted_price, float), "Predicted price is not a float."
+        assert predicted_price > 0, "Predicted price should be greater than 0."
+
+    except Exception as e:
+        await shutdown_event()
+        raise AssertionError(f"Failed to load ML model data: {str(e)}")
+    await shutdown_event()
