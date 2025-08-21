@@ -5,7 +5,7 @@ from app.settings.settings import get_settings
 from app.services.redditTokenService import RedditTokenService
 from app.helper.currencyPrices import get_currency_prices_from_db, create_currency_prices, get_currency_prices_by_date_range
 import httpx
-import time
+from datetime import datetime
 
 class CurrencyPricesService(object):
     def __init__(self, session: DBSessionDep):
@@ -58,7 +58,7 @@ class CurrencyPricesService(object):
                             name = item.get("name"),
                             price = item.get("current_price"),
                             price_currency=self.settings.main_currency,
-                            timestamp=int(time.time()),
+                            timestamp=int(datetime.now().timestamp()),
                             source="coingecko",
                             market_cap=item.get("market_cap"),
                             total_volume=item.get("total_volume"),
