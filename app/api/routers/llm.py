@@ -25,15 +25,16 @@ async def get_reddit_sentiments_by_date_range(
     return {"message": result}
 
 @router.get(
-    "/reddit_sentiments_today",
-    summary="Label today's Reddit sentiments",
-    description="Fetches today's Reddit sentiments and processes them in the background.",
+    "/reddit_sentiments_hourly",
+    summary="Label past X hours Reddit sentiments",
+    description="Fetches past X hours Reddit sentiments and processes them in the background.",
     response_description="Reddit sentiments are being processed in the background.",
 )
 async def get_reddit_sentiments_today(
     session: DBSessionDep,
-    batch_size: int = Query(..., description="Batch size for processing Reddit sentiments.")
+    batch_size: int = Query(..., description="Batch size for processing Reddit sentiments."),
+    hours: int = Query(24, description="Number of hours to look back for today's sentiments.")
 ):
     llm_service = LLMService(session)
-    result = await llm_service.label_reddit_sentiments_today_service(batch_size=batch_size)
+    result = await llm_service.label_reddit_sentiments_today_service(batch_size=batch_size, hours=hours)
     return {"message": result}

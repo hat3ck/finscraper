@@ -79,3 +79,19 @@ async def get_reddit_posts_by_date_range(session: AsyncSession, start_date: int,
         return []
 
     return reddit_posts
+
+async def get_reddit_posts_by_post_ids(session: AsyncSession, post_ids: list[str]):
+    """
+    Fetches Reddit posts by a list of post IDs.
+    """
+    if not post_ids:
+        raise HTTPException(status_code=400, detail="Post IDs are required; location nUw2Kqut5v")
+    
+    query = select(UserRedditPostsModel).where(UserRedditPostsModel.post_id.in_(post_ids))
+    result = await session.execute(query)
+    reddit_posts = result.scalars().all()
+
+    if not reddit_posts:
+        raise HTTPException(status_code=404, detail="No Reddit posts found for the provided post IDs; location fp8BqM8yZ")
+
+    return [RedditPost.model_validate(post) for post in reddit_posts]

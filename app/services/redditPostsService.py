@@ -4,7 +4,7 @@ import asyncio
 import pandas as pd
 from app.api.dependencies.core import DBSessionDep
 from app.helper.redditPosts import get_reddit_posts_user, create_reddit_posts, create_unique_reddit_posts
-from app.helper.redditPosts import get_reddit_posts_by_date_range
+from app.helper.redditPosts import get_reddit_posts_by_date_range, get_reddit_posts_by_post_ids
 from app.schemas.reddit_posts import RedditPostCreate, RedditPostsAndComments
 from app.settings.settings import get_settings
 import httpx
@@ -29,6 +29,10 @@ class RedditPostsService(object):
                                                     start_date_timestamp: int,
                                                     end_date_timestamp: int):
         reddit_posts = await get_reddit_posts_by_date_range(self.session, start_date_timestamp, end_date_timestamp)
+        return reddit_posts
+
+    async def get_reddit_posts_by_post_ids_service(self, post_ids: list[str]):
+        reddit_posts = await get_reddit_posts_by_post_ids(self.session, post_ids)
         return reddit_posts
 
     async def create_reddit_posts_service(self, reddit_posts: list[RedditPostCreate]):
@@ -153,8 +157,10 @@ class RedditPostsService(object):
         # initialize RedditCommentsService
         reddit_comments_service = RedditCommentsService(self.session)
         # get posts and comments from Reddit within the date range
-        posts = await self.get_reddit_posts_by_date_range_service(start_date_timestamp, end_date_timestamp)
         comments = await reddit_comments_service.get_reddit_comments_date_range_service(start_date_timestamp, end_date_timestamp)
+        # Get posts with comments unique post_ids
+        post_ids = list(set(comment.post_id for comment in comments))
+        posts = await self.get_reddit_posts_by_post_ids_service(post_ids)
         if not posts or not comments:
             raise ValueError("No posts or comments found in the specified date range. location uM2wFJn2u")
         # convert posts and comments to DataFrames

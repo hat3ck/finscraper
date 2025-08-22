@@ -105,10 +105,10 @@ class LLMService(object):
             return_task
         )
     
-    async def label_reddit_sentiments_today_service(self, batch_size: int = None, return_task: bool = False):
+    async def label_reddit_sentiments_today_service(self, batch_size: int = None, hours: int = 24, return_task: bool = False):
         current_time = datetime.now().timestamp()
         # start date will be 24 hours before current_time
-        start_date_timestamp = int(current_time) - 24 * 60 * 60
+        start_date_timestamp = int(current_time) - hours * 60 * 60
         end_date_timestamp = int(current_time)
 
         return await self.label_reddit_sentiments_by_date_range(
