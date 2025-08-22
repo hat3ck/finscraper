@@ -1,8 +1,8 @@
 FROM python:3.11-slim
 
-LABEL version="1.0.7" \
-      description="Added predict currency based on reddit sentiment." \
-      release.date="2025-08-15"
+LABEL version="1.0.8" \
+      description="Refactor fetch reddit posts and comments for llm labeling." \
+      release.date="2025-08-22"
 
 WORKDIR /finscraper
 
