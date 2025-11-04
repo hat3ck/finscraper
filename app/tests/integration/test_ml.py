@@ -1,6 +1,5 @@
-from contextlib import asynccontextmanager
 import pytest
-from app.schemas.ml_models import MLModel, MLModelCreate
+from app.schemas.ml_models import MLModelCreate
 from app.schemas.reddit_posts import RedditPostCreate
 from app.schemas.reddit_comments import RedditCommentCreate
 from app.schemas.currency_prices import CurrencyPricesCreate
@@ -8,7 +7,6 @@ from app.schemas.llm_providers import LLMProviderCreate
 from app.schemas.reddit_sentiments import RedditSentimentsCreate
 from app.schemas.predictions import PredictionsCreate
 from app.services.llmService import LLMService
-from app.services.cohereService import CohereService
 from app.settings.settings import get_settings
 from app.services.redditCommentsService import RedditCommentsService
 from app.services.redditPostsService import RedditPostsService
@@ -16,39 +14,11 @@ from app.helper.currencyPrices import create_currency_prices
 from app.helper.redditSentiments import create_reddit_sentiments
 from app.helper.predictions import get_predictions_by_currency_date
 from app.services.mlService import MlService
-from sqlalchemy import text
-from .conftest import table_names
 import os
 import json
 import pandas as pd
-import time
-from datetime import datetime
-from app.database import get_db_session
 
 settings = get_settings()
-
-# Initialize a session for testing
-@asynccontextmanager
-async def test_session():
-    async for session in get_db_session():
-        yield session
-
-@pytest.fixture
-async def session():
-    async with test_session() as db_session:
-        yield db_session
-
-async def shutdown_event():
-    # remove data from the database after tests
-    gen = get_db_session()
-    try:
-        session = await anext(gen)
-        for table in table_names:
-            await session.execute(text(f"DELETE FROM {table}"))
-        await session.commit()
-    finally:
-        await gen.aclose()
-        
 
 async def setup_for_ml_service(session, test_number: str):
     """
@@ -175,9 +145,7 @@ async def test_001_create_ml_model(session):
         # Assert the created model matches the fetched model
         assert active_ml_model == ml_models_create[0], "Created ML model does not match fetched model."
     except Exception as e:
-        await shutdown_event()
         raise AssertionError(f"Failed to create ML model: {str(e)}")
-    await shutdown_event()
 
 @pytest.mark.asyncio
 async def test_002_prepare_sentiment_data(session):
@@ -228,9 +196,7 @@ async def test_002_prepare_sentiment_data(session):
             assert column in last_hour_data.columns, f"Column '{column}' is missing from last hour data."
 
     except Exception as e:
-        await shutdown_event()
         raise AssertionError(f"Failed to prepare data in ML service: {str(e)}")
-    await shutdown_event()
 
 @pytest.mark.asyncio
 async def test_003_predict_currency_price(session):
@@ -287,9 +253,7 @@ async def test_003_predict_currency_price(session):
         assert isinstance(predicted_price.created_utc, int), "Created UTC is not an int."
         assert predicted_price.prediction_timestamp == int(predicted_price.created_utc + (12 * 3600)), "Prediction timestamp is not correct."
     except Exception as e:
-        await shutdown_event()
         raise AssertionError(f"Failed to  predict currency price: {str(e)}")
-    await shutdown_event()
 
 @pytest.mark.asyncio
 async def test_004_predict_currencies_sentiment(session):
@@ -321,6 +285,4 @@ async def test_004_predict_currencies_sentiment(session):
         assert len(predictions) > 0, "No predictions found for BTC currency."
 
     except Exception as e:
-        await shutdown_event()
         raise AssertionError(f"Failed to predict currencies sentiment: {str(e)}")
-    await shutdown_event()

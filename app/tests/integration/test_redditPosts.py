@@ -1,39 +1,12 @@
-from contextlib import asynccontextmanager
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import json
 import os
 import pytest
 from app.schemas.reddit_posts import RedditPost, RedditPostCreate
 from app.services.redditPostsService import RedditPostsService
 from app.settings.settings import get_settings
-from sqlalchemy import text
-from .conftest import table_names
-
-from app.database import get_db_session
 
 settings = get_settings()
-
-# Initialize a session for testing
-@asynccontextmanager
-async def test_session():
-    async for session in get_db_session():
-        yield session
-
-@pytest.fixture
-async def session():
-    async with test_session() as db_session:
-        yield db_session
-
-async def shutdown_event():
-    # remove data from the database after tests
-    gen = get_db_session()
-    try:
-        session = await anext(gen)
-        for table in table_names:
-            await session.execute(text(f"DELETE FROM {table}"))
-        await session.commit()
-    finally:
-        await gen.aclose()
         
 
 @pytest.mark.asyncio
@@ -91,7 +64,6 @@ async def test_003_get_posts_from_subreddits_service(session):
         assert len(result) > 0, "Expected to fetch posts from subreddits"
     except Exception as e:
         assert False, f"Failed to fetch posts from subreddits: {str(e)}"
-    await shutdown_event()
 
 @pytest.mark.asyncio
 async def test_004_fetch_posts_and_comments_from_reddit_service(session):
@@ -114,7 +86,6 @@ async def test_004_fetch_posts_and_comments_from_reddit_service(session):
         assert len(comments) > 0, "Expected to fetch comments for the posts"
     except Exception as e:
         assert False, f"Failed to fetch posts and comments from Reddit: {str(e)}"
-    await shutdown_event()
 
 @pytest.mark.asyncio
 async def test_005_get_reddit_posts_by_date_range_service(session):
@@ -125,6 +96,8 @@ async def test_005_get_reddit_posts_by_date_range_service(session):
     start_date = "2025-01-01"
     # end date is set to tomorrow to ensure we have posts
     end_date = (date.today() + timedelta(days=1)).isoformat()
+    start_date_timestamp = int(datetime.fromisoformat(start_date).timestamp())
+    end_date_timestamp = int(datetime.fromisoformat(end_date).timestamp())
     try:
         # load the posts from file
         posts_file_path = os.path.join(
@@ -139,11 +112,9 @@ async def test_005_get_reddit_posts_by_date_range_service(session):
         reddit_posts = [RedditPostCreate(**post) for post in posts_data]
         # create some posts in the database for the date range
         await reddit_posts_service.create_reddit_posts_service(reddit_posts)
-        posts = await reddit_posts_service.get_reddit_posts_by_date_range_service(start_date, end_date)
+        posts = await reddit_posts_service.get_reddit_posts_by_date_range_service(start_date_timestamp, end_date_timestamp)
         assert isinstance(posts, list), "Expected a list of posts."
         assert all(isinstance(post, RedditPost) for post in posts), "Expected all posts to be RedditPost objects."
         assert len(posts) > 0, "Expected at least one post within the date range."
     except Exception as e:
         pytest.fail(f"Failed to fetch Reddit posts by date range: {str(e)}")
-    
-    await shutdown_event()

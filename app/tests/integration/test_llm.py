@@ -1,4 +1,3 @@
-from contextlib import asynccontextmanager
 import pytest
 from app.schemas.llm_providers import LLMProvider, LLMProviderCreate
 from app.schemas.reddit_posts import RedditPostCreate
@@ -9,38 +8,12 @@ from app.settings.settings import get_settings
 from app.services.redditCommentsService import RedditCommentsService
 from app.services.redditPostsService import RedditPostsService
 from sqlalchemy import text
-from .conftest import table_names
 import os
 import json
 import pandas as pd
-import time
-from app.database import get_db_session
 
 settings = get_settings()
-
-# Initialize a session for testing
-@asynccontextmanager
-async def test_session():
-    async for session in get_db_session():
-        yield session
-
-@pytest.fixture
-async def session():
-    async with test_session() as db_session:
-        yield db_session
-
-async def shutdown_event():
-    # remove data from the database after tests
-    gen = get_db_session()
-    try:
-        session = await anext(gen)
-        for table in table_names:
-            await session.execute(text(f"DELETE FROM {table}"))
-        await session.commit()
-    finally:
-        await gen.aclose()
         
-
 @pytest.mark.asyncio
 async def test_000():
     """
@@ -75,9 +48,7 @@ async def test_001_get_llm_provider(session):
         llm_provider = await llm_provider_service.get_active_llm_provider_service()
         assert llm_provider, "LLM provider should be fetched successfully."
         assert llm_provider.name == provider_data.name, "LLM provider name should match the created provider."
-        await shutdown_event()
     except Exception as e:
-        await shutdown_event()
         pytest.fail(f"Failed to fetch LLM provider: {str(e)}")
 
 @pytest.mark.asyncio
@@ -112,10 +83,7 @@ async def test_002_generate_text_with_cohere(session):
             assert "paris" in response_text.lower(), "Response text should contain 'paris'."
             
         except Exception as e:
-            await shutdown_event()
             pytest.fail(f"Failed to generate text with Cohere: {str(e)}")
-        
-        await shutdown_event()
 
 @pytest.mark.asyncio
 async def test_003_get_sentiments(session):
@@ -163,10 +131,8 @@ async def test_003_get_sentiments(session):
         assert not response.empty, "Response DataFrame should not be empty."
         assert set(response.columns) == {'post_id', 'comment_id', 'crypto_sentiment', 'future_sentiment', 'emotion', 'subjective'}, "Response DataFrame should have the correct columns."
         assert len(response) == len(data), "Response DataFrame should have the same number of rows as input data."
-        await shutdown_event()
 
     except Exception as e:
-        await shutdown_event()
         pytest.fail(f"Failed to get sentiments: {str(e)}")
 
 @pytest.mark.asyncio()
@@ -232,8 +198,6 @@ async def test_004_create_reddit_sentiments(session):
         result = await session.execute(query)
         count = result.scalar()
         assert count > 0, "Reddit sentiments should be created in the database."
-        await shutdown_event()
 
     except Exception as e:
-        await shutdown_event()
         pytest.fail(f"Failed to prepare data for Reddit sentiments: {str(e)}")

@@ -1,3 +1,4 @@
+from typing import List
 from app.api.dependencies.core import DBSessionDep
 from app.schemas.reddit_posts import RedditPost, RedditPostCreate
 from fastapi import APIRouter, Query
@@ -12,7 +13,7 @@ router = APIRouter(
 
 @router.get(
     "/author",
-    response_model=RedditPost,
+    response_model=List[RedditPost],
     summary="Get Reddit posts by author ID",
     description="Fetches all Reddit posts for a given author ID.",
     response_description="List of Reddit posts for the specified author ID",

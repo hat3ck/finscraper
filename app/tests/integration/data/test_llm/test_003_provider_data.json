@@ -1,7 +1,7 @@
 {
   "id": 2,
   "name": "cohere",
-  "model": "command-r",
+  "model": "command-r7b-12-2024",
   "default_api_key": "YOUR_API_KEY_HERE",
   "api_url": "https://api.cohere.com/v2",
   "tokens_per_minute": 128000,

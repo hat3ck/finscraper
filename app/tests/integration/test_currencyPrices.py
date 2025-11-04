@@ -1,40 +1,10 @@
-from contextlib import asynccontextmanager
 import pytest
 from app.schemas.currency_prices import CurrencyPricesCreate, CurrencyPrice
 from app.services.currencyPricesService import CurrencyPricesService
 from app.settings.settings import get_settings
-from sqlalchemy import text
-from .conftest import table_names
 from datetime import datetime
-import os
-import json
-
-from app.database import get_db_session
 
 settings = get_settings()
-
-# Initialize a session for testing
-@asynccontextmanager
-async def test_session():
-    async for session in get_db_session():
-        yield session
-
-@pytest.fixture
-async def session():
-    async with test_session() as db_session:
-        yield db_session
-
-async def shutdown_event():
-    # remove data from the database after tests
-    gen = get_db_session()
-    try:
-        session = await anext(gen)
-        for table in table_names:
-            await session.execute(text(f"DELETE FROM {table}"))
-        await session.commit()
-    finally:
-        await gen.aclose()
-        
 
 @pytest.mark.asyncio
 async def test_000():
@@ -85,10 +55,8 @@ async def test_002_create_currency_prices_service(session):
         assert isinstance(first_created_price, CurrencyPricesCreate), "First created price item should be a CurrencyPrice instance"
         
     except Exception as e:
-        await shutdown_event()
         assert False, f"Unexpected error during creating currency prices: {str(e)}"
-    
-    await shutdown_event()  # Clean up the database after the test
+
 
 @pytest.mark.asyncio
 async def test_003_get_currency_prices_by_date_range(session):
@@ -115,5 +83,4 @@ async def test_003_get_currency_prices_by_date_range(session):
         assert len(currency_prices) > 0, "Currency prices list should not be empty"
         
     except Exception as e:
-        await shutdown_event()
         assert False, f"Failed to set up date range for test: {str(e)}"

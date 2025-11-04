@@ -1,9 +1,5 @@
-import contextlib
-from typing import Any, AsyncIterator
+from typing import AsyncIterator, Any
 from contextlib import asynccontextmanager
-
-
-from app.settings.settings import get_settings
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
@@ -12,36 +8,48 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import declarative_base
 
+from app.settings.settings import get_settings
+
 settings = get_settings()
-
 Base = declarative_base()
-
-# Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html
 
 
 class DatabaseSessionManager:
-    def __init__(self, host: str, engine_kwargs: dict[str, Any] = {}):
-        self._engine = create_async_engine(host, **engine_kwargs)
-        self._sessionmaker = async_sessionmaker(autocommit=False, bind=self._engine)
+    """
+    Manages creation of async SQLAlchemy engine and sessions.
+    Safe for both FastAPI and pytest-asyncio usage.
+    """
 
-    def get_engine(self):
-        if self._engine is None:
-            raise Exception("Engine is not initialized")
-        return self._engine
-
-    async def close(self):
-        if self._engine is None:
-            raise Exception("DatabaseSessionManager is not initialized")
-        await self._engine.dispose()
-
+    def __init__(self, database_url: str, engine_kwargs: dict[str, Any] | None = None):
+        self._database_url = database_url
+        self._engine_kwargs = engine_kwargs or {}
         self._engine = None
         self._sessionmaker = None
 
-    @contextlib.asynccontextmanager
-    async def connect(self) -> AsyncIterator[AsyncConnection]:
+    def init_engine(self):
+        """(Re)initialize engine and sessionmaker for current event loop."""
         if self._engine is None:
-            raise Exception("DatabaseSessionManager is not initialized")
+            self._engine = create_async_engine(self._database_url, **self._engine_kwargs)
+            self._sessionmaker = async_sessionmaker(
+                self._engine, expire_on_commit=False, autoflush=False, autocommit=False
+            )
 
+    def get_engine(self):
+        if self._engine is None:
+            self.init_engine()
+        return self._engine
+
+    async def close(self):
+        """Dispose of the engine when shutting down."""
+        if self._engine is not None:
+            await self._engine.dispose()
+            self._engine = None
+            self._sessionmaker = None
+
+    @asynccontextmanager
+    async def connect(self) -> AsyncIterator[AsyncConnection]:
+        """Provide a one-off async connection."""
+        self.init_engine()
         async with self._engine.begin() as connection:
             try:
                 yield connection
@@ -49,11 +57,10 @@ class DatabaseSessionManager:
                 await connection.rollback()
                 raise
 
-    @contextlib.asynccontextmanager
+    @asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:
-        if self._sessionmaker is None:
-            raise Exception("DatabaseSessionManager is not initialized")
-
+        """Provide a session bound to the current loop."""
+        self.init_engine()
         session = self._sessionmaker()
         try:
             yield session
@@ -63,9 +70,25 @@ class DatabaseSessionManager:
         finally:
             await session.close()
 
+    async def reset(self):
+        """Dispose engine and reset sessionmaker. Safe for pytest loop resets."""
+        if self._engine is not None:
+            await self._engine.dispose()
+        self._engine = None
+        self._sessionmaker = None
 
-sessionmanager = DatabaseSessionManager(settings.database_url, {"echo": settings.echo_sql})
 
-async def get_db_session():
+# Create manager — note: engine is initialized lazily (loop-safe)
+sessionmanager = DatabaseSessionManager(
+    settings.database_url,
+    {"echo": settings.echo_sql, "future": True}
+)
+
+
+async def get_db_session() -> AsyncIterator[AsyncSession]:
+    """
+    Dependency for FastAPI routes or tests.
+    Ensures a session tied to the current event loop.
+    """
     async with sessionmanager.session() as session:
         yield session
