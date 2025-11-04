@@ -35,6 +35,7 @@ docker run -d --name finscraper \
     -e REDDIT_CLIENT_ID=[REDDIT_CLIENT_ID] \
     -e REDDIT_CLIENT_SECRET=[REDDIT_CLIENT_SECRET] \
     -e COINGECKO_API_KEY=[COINGECKO_API_KEY] \
+    -e COHERE_API_KEY=[COHERE_API_KEY] \
     -p 8000:8000 \
     ghcr.io/hat3ck/finscraper:[VERSION]
 ```

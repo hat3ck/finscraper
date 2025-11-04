@@ -1,8 +1,8 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
-LABEL version="1.0.8" \
-      description="Refactor fetch reddit posts and comments for llm labeling." \
-      release.date="2025-08-22"
+LABEL version="1.0.9" \
+      description="Update tests and use python 3.12" \
+      release.date="2025-11-04"
 
 WORKDIR /finscraper
 
