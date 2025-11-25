@@ -141,8 +141,8 @@ docker build -t finscraper:[VERSION] .
 ```bash
 
         docker login ghcr.io -u [USERNAME] -p [ACCESS_TOKEN]
-        docker tag finscraper:[VERSION] ghcr.io/hat3ck/finscraper:[VERSION]
-        docker push ghcr.io/hat3ck/finscraper:[VERSION]
+        docker tag finscraper:[VERSION] ghcr.io/[USERNAME]/finscraper:[VERSION]
+        docker push ghcr.io/[USERNAME]/finscraper:[VERSION]
 ```
 
 # How to run the app from docker?
@@ -161,5 +161,5 @@ docker run -d --name finscraper \
     -e COINGECKO_API_KEY=[COINGECKO_API_KEY] \
     -e COHERE_API_KEY=[COHERE_API_KEY] \
     -p 8000:8000 \
-    ghcr.io/hat3ck/finscraper:[VERSION]
+    ghcr.io/[USERNAME]/finscraper:[VERSION]
 ```

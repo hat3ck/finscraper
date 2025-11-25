@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     comment_depth: int = 3
     reddit_client_id: str = os.getenv("REDDIT_CLIENT_ID","")
     reddit_client_secret: str = os.getenv("REDDIT_CLIENT_SECRET","")
-    reddit_user_agent: str = os.getenv("REDDIT_USER_AGENT", "testscript:v1.0.1 (by /u/hat3ck)")
+    reddit_user_agent: str = os.getenv("REDDIT_USER_AGENT", "testscript:v1.0.1 (by /u/testscript)")
     main_currency: str = "usd"
     currency_list: list[str] = ["btc", "eth", "usdt", "bnb", "xrp", "ada", "sol", "usdc", "doge", "steth", "sui", "trx", "link", "leo", "avax", "xlm", "ton", "shib", "ltc", "xmr", "bgb", "pi", "uni"]
     coingecko_api_key: str = os.getenv("COINGECKO_API_KEY", "")
