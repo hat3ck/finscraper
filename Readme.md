@@ -100,6 +100,13 @@ To set up the prediction models for each currency, you need to create a document
 ]
 ```
 
+# How to run tests?
+
+You will need to create a .env file in app/tests/integration with a similar content as the .env file in the root directory. The only difference is that you should use a different database and api keys for testing to avoid any conflicts with the development data because the database will be wiped during the tests.
+```bash
+pytest app/tests/integration
+```
+
 # How to create docker image?
 
 ```bash
