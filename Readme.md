@@ -76,6 +76,29 @@ Once the application is running, you can use the following endpoints:
 - `GET /api/llm/reddit_sentiments_by_date_range`: Label the comments and topics using Cohere models for a given date range.
 - `POST /api/ml/predict`: Creates a new hourly prediction for currencies based on ML models set up for each currency. There is an hour_interval parameter to specify the exact hour to predict.
 
+# labeling comments and posts using LLMs
+To call the llm to label the comments and posts, you need to add a document in the 'llm_providers' collection in the database like the example below:
+
+```json
+[
+ {
+   "id": 3,
+   "name": "cohere",
+   "model": "command-r7b-12-2024",
+   "default_api_key": "YOUR_COHERE_API_KEY",
+   "api_url": "https://api.cohere.com/v2",
+   "tokens_per_minute": 128000,
+   "calls_per_minute": 20,
+   "total_used_tokens": 0,
+   "is_active": true,
+   "created_at": 1754069817,
+   "access_token": null,
+   "access_token_expiry": null,
+   "access_token_type": null
+ }
+]
+```
+
 # Prediction model setup
 To set up the prediction models for each currency, you need to create a document in 'ml_models' collection in the database for each currency like the example below:
 
